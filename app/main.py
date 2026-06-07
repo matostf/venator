@@ -95,10 +95,13 @@ def _login_html(error: bool = False) -> str:
   <title>Entrar — Acervo de História</title>
   <script>
     (function () {{
-      var t = localStorage.getItem("theme") || "dark";
+      var t = localStorage.getItem("theme") || "light";
       document.documentElement.setAttribute("data-theme", t);
     }})();
   </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&display=swap" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
