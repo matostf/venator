@@ -28,7 +28,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import db
+from . import auth, db
 from .sources import artic, met, smithsonian, wikimedia
 from .sources.base import USER_AGENT
 from .sources.smithsonian import MissingKeyError
@@ -40,13 +40,23 @@ app = FastAPI(title="Acervo de História")
 STATIC_DIR = Path(__file__).parent / "static"
 
 # ---- Authentication config ----
-# Set APP_PASSWORD to require a login. If it's empty (local dev), auth is OFF.
-# SECRET_KEY signs the session cookie — set a long random value in production.
+# Auth is ON when APP_PASSWORD is set; if it's empty (local dev) auth is OFF and
+# the app is fully open. When ON, users sign in with their own e-mail/password
+# account (see the users table); APP_PASSWORD additionally works as a master
+# password so an admin always has a way in. SECRET_KEY signs the session cookie —
+# set a long random value in production.
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-secret-change-me")
 
-# Paths reachable without being logged in (the login page + its assets).
-_PUBLIC_PATHS = {"/login", "/logout", "/styles.css", "/theme.js", "/favicon.ico"}
+# Public base URL used to build absolute password-reset links (falls back to the
+# request's own host when unset).
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "").rstrip("/")
+
+# Paths reachable without being logged in (auth pages + static login assets).
+_PUBLIC_PATHS = {
+    "/login", "/logout", "/register", "/forgot", "/reset",
+    "/styles.css", "/theme.js", "/favicon.ico",
+}
 
 # Registry of available sources: key -> (label, async search function).
 # NOTE: Art Institute of Chicago is temporarily disabled — its image server is
@@ -83,16 +93,21 @@ def _now() -> str:
 # ==========================================================================
 # Authentication
 # ==========================================================================
-def _login_html(error: bool = False) -> str:
-    msg = (
-        '<p class="login-error">Senha incorreta. Tente novamente.</p>' if error else ""
+def _esc(s: str) -> str:
+    return (
+        str(s or "")
+        .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )
+
+
+def _auth_page(title: str, inner: str) -> str:
+    """Wrap an auth form in the shared login card shell."""
     return f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Entrar — Acervo de História</title>
+  <title>{title} — Acervo de História</title>
   <script>
     (function () {{
       var t = localStorage.getItem("theme") || "dark";
@@ -103,32 +118,230 @@ def _login_html(error: bool = False) -> str:
 </head>
 <body>
   <div class="login-wrap">
-    <form class="login-card" method="post" action="/login">
+    <div class="login-card">
       <div class="login-logo">🏛️</div>
       <h1>Acervo de História</h1>
-      <p class="login-sub">Digite a senha para acessar sua biblioteca.</p>
-      {msg}
-      <input type="password" name="password" placeholder="Senha" autofocus required />
-      <button type="submit" class="btn">Entrar</button>
-    </form>
+      {inner}
+    </div>
   </div>
 </body>
 </html>"""
+
+
+def _alert(msg: str, kind: str = "error") -> str:
+    cls = "login-error" if kind == "error" else "login-success"
+    return f'<p class="{cls}">{msg}</p>' if msg else ""
+
+
+def _login_inner(error: str = "", info: str = "") -> str:
+    return f"""
+      <p class="login-sub">Entre com sua conta para acessar a biblioteca.</p>
+      {_alert(error)}{_alert(info, "success")}
+      <form method="post" action="/login">
+        <input type="email" name="email" placeholder="E-mail" autocomplete="username" autofocus required />
+        <input type="password" name="password" placeholder="Senha" autocomplete="current-password" required />
+        <button type="submit" class="btn">Entrar</button>
+      </form>
+      <p class="login-links">
+        <a href="/forgot">Esqueci minha senha</a> · <a href="/register">Criar conta</a>
+      </p>"""
+
+
+def _register_inner(error: str = "", name: str = "", email: str = "") -> str:
+    return f"""
+      <p class="login-sub">Crie sua conta para acessar o acervo.</p>
+      {_alert(error)}
+      <form method="post" action="/register">
+        <input type="text" name="name" placeholder="Nome (opcional)" autocomplete="name" value="{_esc(name)}" />
+        <input type="email" name="email" placeholder="E-mail" autocomplete="username" value="{_esc(email)}" required />
+        <input type="password" name="password" placeholder="Senha (mínimo 8 caracteres)" autocomplete="new-password" minlength="8" required />
+        <input type="password" name="password2" placeholder="Repita a senha" autocomplete="new-password" minlength="8" required />
+        <button type="submit" class="btn">Criar conta</button>
+      </form>
+      <p class="login-links"><a href="/login">Já tenho conta — entrar</a></p>"""
+
+
+def _is_valid_email(email: str) -> bool:
+    email = (email or "").strip()
+    return "@" in email and "." in email.split("@")[-1] and len(email) <= 254
+
+
+def _login_session(request: Request, uid, email: str) -> None:
+    request.session.clear()
+    request.session["auth"] = True
+    request.session["uid"] = uid
+    request.session["email"] = email
 
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     if not APP_PASSWORD or request.session.get("auth"):
         return RedirectResponse(url="/", status_code=303)
-    return HTMLResponse(_login_html())
+    return HTMLResponse(_auth_page("Entrar", _login_inner()))
 
 
 @app.post("/login", response_class=HTMLResponse)
-def login_submit(request: Request, password: str = Form(...)):
-    if APP_PASSWORD and password == APP_PASSWORD:
-        request.session["auth"] = True
+def login_submit(request: Request, email: str = Form(""), password: str = Form(...)):
+    user = db.get_user_by_email(email) if email else None
+    if user and auth.verify_password(password, user["password_hash"]):
+        _login_session(request, user["id"], user["email"])
         return RedirectResponse(url="/", status_code=303)
-    return HTMLResponse(_login_html(error=True), status_code=401)
+
+    # Master password fallback (admin always has a way in).
+    if APP_PASSWORD and password == APP_PASSWORD:
+        _login_session(request, "admin", email or "admin")
+        return RedirectResponse(url="/", status_code=303)
+
+    return HTMLResponse(
+        _auth_page("Entrar", _login_inner(error="E-mail ou senha incorretos.")),
+        status_code=401,
+    )
+
+
+@app.get("/register", response_class=HTMLResponse)
+def register_page(request: Request):
+    if not APP_PASSWORD or request.session.get("auth"):
+        return RedirectResponse(url="/", status_code=303)
+    return HTMLResponse(_auth_page("Criar conta", _register_inner()))
+
+
+@app.post("/register", response_class=HTMLResponse)
+def register_submit(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    password2: str = Form(""),
+    name: str = Form(""),
+):
+    def fail(msg: str):
+        return HTMLResponse(
+            _auth_page("Criar conta", _register_inner(error=msg, name=name, email=email)),
+            status_code=400,
+        )
+
+    if not _is_valid_email(email):
+        return fail("Informe um e-mail válido.")
+    if len(password) < 8:
+        return fail("A senha precisa ter pelo menos 8 caracteres.")
+    if password != password2:
+        return fail("As senhas não coincidem.")
+    if db.get_user_by_email(email):
+        return fail("Já existe uma conta com este e-mail.")
+
+    user = db.create_user(email, name, auth.hash_password(password), _now())
+    if not user:  # race: created between the check and the insert
+        return fail("Já existe uma conta com este e-mail.")
+
+    _login_session(request, user["id"], user["email"])
+    return RedirectResponse(url="/", status_code=303)
+
+
+@app.get("/forgot", response_class=HTMLResponse)
+def forgot_page(request: Request):
+    if not APP_PASSWORD or request.session.get("auth"):
+        return RedirectResponse(url="/", status_code=303)
+    inner = """
+      <p class="login-sub">Informe seu e-mail e enviaremos um link para redefinir a senha.</p>
+      <form method="post" action="/forgot">
+        <input type="email" name="email" placeholder="E-mail" autocomplete="username" autofocus required />
+        <button type="submit" class="btn">Enviar link</button>
+      </form>
+      <p class="login-links"><a href="/login">Voltar ao login</a></p>"""
+    return HTMLResponse(_auth_page("Recuperar senha", inner))
+
+
+@app.post("/forgot", response_class=HTMLResponse)
+def forgot_submit(request: Request, email: str = Form(...)):
+    user = db.get_user_by_email(email)
+    dev_link = ""
+    if user:
+        token = auth.new_reset_token()
+        expires = (_dt.datetime.now() + _dt.timedelta(hours=auth.RESET_TOKEN_TTL_HOURS))
+        db.create_reset_token(user["id"], token, expires.isoformat(timespec="seconds"), _now())
+        base = APP_BASE_URL or str(request.base_url).rstrip("/")
+        reset_url = f"{base}/reset?token={token}"
+        sent = auth.send_reset_email(user["email"], reset_url)
+        # Fallback when SMTP isn't set up yet: surface the link so the account
+        # can still be recovered. Once SMTP_* is configured this never shows.
+        if not sent and not auth.smtp_configured():
+            dev_link = (
+                '<p class="login-sub" style="margin-top:14px">SMTP não configurado — '
+                f'use este link (modo de configuração):<br><a href="{_esc(reset_url)}">'
+                "Redefinir minha senha</a></p>"
+            )
+
+    inner = f"""
+      <p class="login-sub">Se houver uma conta com esse e-mail, enviamos um link para
+      redefinir a senha. Verifique sua caixa de entrada (e o spam).</p>
+      {dev_link}
+      <p class="login-links"><a href="/login">Voltar ao login</a></p>"""
+    return HTMLResponse(_auth_page("Recuperar senha", inner))
+
+
+def _valid_reset(token: str):
+    """Return the reset row if the token exists, is unused and not expired."""
+    row = db.get_reset_token(token) if token else None
+    if not row or row["used"]:
+        return None
+    try:
+        if _dt.datetime.fromisoformat(row["expires_at"]) < _dt.datetime.now():
+            return None
+    except (ValueError, TypeError):
+        return None
+    return row
+
+
+def _reset_form_inner(token: str, error: str = "") -> str:
+    return f"""
+      <p class="login-sub">Crie uma nova senha para sua conta.</p>
+      {_alert(error)}
+      <form method="post" action="/reset">
+        <input type="hidden" name="token" value="{_esc(token)}" />
+        <input type="password" name="password" placeholder="Nova senha (mínimo 8 caracteres)" autocomplete="new-password" minlength="8" autofocus required />
+        <input type="password" name="password2" placeholder="Repita a nova senha" autocomplete="new-password" minlength="8" required />
+        <button type="submit" class="btn">Redefinir senha</button>
+      </form>"""
+
+
+def _invalid_token_page() -> HTMLResponse:
+    inner = """
+      <p class="login-sub">Este link de redefinição é inválido ou expirou.</p>
+      <p class="login-links"><a href="/forgot">Solicitar um novo link</a></p>"""
+    return HTMLResponse(_auth_page("Link inválido", inner), status_code=400)
+
+
+@app.get("/reset", response_class=HTMLResponse)
+def reset_page(request: Request, token: str = Query("")):
+    if not _valid_reset(token):
+        return _invalid_token_page()
+    return HTMLResponse(_auth_page("Redefinir senha", _reset_form_inner(token)))
+
+
+@app.post("/reset", response_class=HTMLResponse)
+def reset_submit(
+    request: Request,
+    token: str = Form(...),
+    password: str = Form(...),
+    password2: str = Form(""),
+):
+    row = _valid_reset(token)
+    if not row:
+        return _invalid_token_page()
+    if len(password) < 8:
+        return HTMLResponse(
+            _auth_page("Redefinir senha", _reset_form_inner(token, "A senha precisa ter pelo menos 8 caracteres.")),
+            status_code=400,
+        )
+    if password != password2:
+        return HTMLResponse(
+            _auth_page("Redefinir senha", _reset_form_inner(token, "As senhas não coincidem.")),
+            status_code=400,
+        )
+
+    db.set_user_password(row["user_id"], auth.hash_password(password))
+    db.consume_reset_token(token)
+    info = "Senha redefinida com sucesso. Faça login com sua nova senha."
+    return HTMLResponse(_auth_page("Entrar", _login_inner(info=info)))
 
 
 @app.get("/logout")
