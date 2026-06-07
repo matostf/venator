@@ -67,6 +67,22 @@ CREATE TABLE IF NOT EXISTS collection_images (
     added_at       TEXT,
     PRIMARY KEY (collection_id, image_id)
 );
+
+CREATE TABLE IF NOT EXISTS users (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    email          TEXT UNIQUE NOT NULL,   -- stored lowercased
+    name           TEXT,
+    password_hash  TEXT NOT NULL,
+    created_at     TEXT
+);
+
+CREATE TABLE IF NOT EXISTS password_resets (
+    token       TEXT PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at  TEXT NOT NULL,             -- ISO timestamp string
+    used        INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT
+);
 """
 
 
@@ -422,5 +438,107 @@ def delete_image(image_id: int) -> bool:
         conn.execute("DELETE FROM tags WHERE id NOT IN (SELECT tag_id FROM image_tags)")
         conn.commit()
         return True
+    finally:
+        conn.close()
+
+
+# --------------------------------------------------------------------------
+# Users & password resets
+# --------------------------------------------------------------------------
+def _norm_email(email: str) -> str:
+    return (email or "").strip().lower()
+
+
+def count_users() -> int:
+    conn = get_conn()
+    try:
+        return conn.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"]
+    finally:
+        conn.close()
+
+
+def get_user_by_email(email: str) -> Optional[dict]:
+    conn = get_conn()
+    try:
+        row = conn.execute(
+            "SELECT * FROM users WHERE email = ?", (_norm_email(email),)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_user(user_id: int) -> Optional[dict]:
+    conn = get_conn()
+    try:
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def create_user(email: str, name: str, password_hash: str, created_at: str) -> Optional[dict]:
+    """Insert a new user. Returns the row, or None if the e-mail already exists."""
+    conn = get_conn()
+    try:
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO users (email, name, password_hash, created_at) VALUES (?, ?, ?, ?)",
+            (_norm_email(email), (name or "").strip(), password_hash, created_at),
+        )
+        if cur.rowcount == 0:
+            return None  # e-mail already registered
+        conn.commit()
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
+        return dict(row)
+    finally:
+        conn.close()
+
+
+def set_user_password(user_id: int, password_hash: str) -> None:
+    conn = get_conn()
+    try:
+        conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def create_reset_token(user_id: int, token: str, expires_at: str, created_at: str) -> None:
+    conn = get_conn()
+    try:
+        conn.execute(
+            "INSERT INTO password_resets (token, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
+            (token, user_id, expires_at, created_at),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_reset_token(token: str) -> Optional[dict]:
+    conn = get_conn()
+    try:
+        row = conn.execute(
+            "SELECT * FROM password_resets WHERE token = ?", (token,)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def consume_reset_token(token: str) -> None:
+    """Mark a token used and invalidate any other outstanding tokens for the user."""
+    conn = get_conn()
+    try:
+        row = conn.execute(
+            "SELECT user_id FROM password_resets WHERE token = ?", (token,)
+        ).fetchone()
+        if row:
+            conn.execute(
+                "UPDATE password_resets SET used = 1 WHERE user_id = ?", (row["user_id"],)
+            )
+            conn.commit()
     finally:
         conn.close()
