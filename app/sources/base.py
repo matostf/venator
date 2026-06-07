@@ -1,0 +1,44 @@
+"""Shared types and helpers for image sources."""
+from __future__ import annotations
+
+from dataclasses import dataclass, asdict
+from typing import Optional
+
+
+@dataclass
+class ImageResult:
+    """A single image result, normalized across every source."""
+
+    id: str                      # globally unique id, e.g. "met:436535"
+    source: str                  # human-readable source name
+    title: str
+    thumbnail: str               # small/medium preview url
+    full_image: str              # highest-resolution download url available
+    source_url: str              # page on the source site (for context/credit)
+    license: str                 # license/rights short name
+    creator: Optional[str] = None
+    width: Optional[int] = None  # pixel width of full image, if known
+    height: Optional[int] = None # pixel height of full image, if known
+
+    @property
+    def attribution(self) -> str:
+        """A ready-to-paste credit line for slides/handouts."""
+        parts = [self.title or "Untitled"]
+        if self.creator:
+            parts.append(f"by {self.creator}")
+        parts.append(f"— {self.source}")
+        if self.license:
+            parts.append(f"({self.license})")
+        return " ".join(parts)
+
+    def to_dict(self) -> dict:
+        d = asdict(self)
+        d["attribution"] = self.attribution
+        return d
+
+
+# A shared, descriptive User-Agent. Several APIs (notably Wikimedia) require one.
+USER_AGENT = (
+    "HistoryImageFinder/1.0 (educational classroom tool; "
+    "https://example.org; contact: teacher@example.org)"
+)

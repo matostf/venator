@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minha Biblioteca — Acervo de História</title>
+  <script>
+    // Apply saved theme before paint to avoid a flash. Default: dark.
+    (function () {
+      var t = localStorage.getItem("theme") || "dark";
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">📚</span>
+      <div>
+        <h1>Minha Biblioteca</h1>
+        <p class="tagline">Suas imagens salvas no computador, organizadas por tags e coleções</p>
+      </div>
+    </div>
+    <nav class="topnav">
+      <a href="/" class="navlink">🔎 Buscar</a>
+      <a href="/library.html" class="navlink active">📚 Minha Biblioteca <span id="libCount" class="badge">0</span></a>
+      <button id="themeToggle" class="theme-toggle" aria-label="Alternar tema">🌙</button>
+      <a href="/logout" class="navlink" title="Sair">Sair</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="library-toolbar">
+      <input id="search" type="search" placeholder="Filtrar por título, autor ou fonte…" />
+      <select id="collectionFilter">
+        <option value="">Todas as coleções</option>
+      </select>
+      <button id="newCollectionBtn" class="btn ghost" style="flex:0 0 auto;">+ Nova coleção</button>
+      <button id="exportCreditsBtn" class="btn ghost" style="flex:0 0 auto;">📋 Copiar créditos</button>
+    </div>
+
+    <div id="tagChips" class="chip-row"></div>
+
+    <section id="status" class="status" hidden></section>
+    <section id="grid" class="grid" aria-live="polite"></section>
+  </main>
+
+  <!-- Lightbox: full-screen detail view -->
+  <div id="lightbox" class="lightbox-backdrop" hidden>
+    <div class="lightbox">
+      <button class="lightbox-close" id="lbClose" aria-label="Fechar">✕</button>
+      <div class="lightbox-img">
+        <img id="lbImg" alt="" />
+      </div>
+      <div class="lightbox-info">
+        <h2 id="lbTitle"></h2>
+        <p id="lbCreator" class="lb-creator"></p>
+        <p id="lbMeta" class="lb-meta"></p>
+
+        <div class="lb-attrib">
+          <span id="lbAttrib"></span>
+          <button id="lbCopyCredit" class="btn ghost" type="button">📋 Copiar crédito</button>
+        </div>
+
+        <label class="field">
+          Tags (separadas por vírgula)
+          <input id="lbTags" type="text" placeholder="ex.: Roma, mapa" />
+        </label>
+
+        <label class="field">
+          📝 Anotações (lembretes para a aula)
+          <textarea id="lbNotes" rows="3" placeholder="ex.: usar no slide 4; comparar com mapa de 200 d.C."></textarea>
+        </label>
+
+        <fieldset class="field">
+          <legend>Coleções</legend>
+          <div id="lbCollections" class="checklist"></div>
+        </fieldset>
+
+        <div class="lightbox-actions">
+          <button id="lbSave" class="btn" type="button">💾 Salvar</button>
+          <a id="lbDownload" class="btn ghost">⬇ Baixar</a>
+          <a id="lbSource" class="btn ghost" target="_blank" rel="noopener">↗ Fonte</a>
+          <button id="lbDelete" class="btn danger" type="button">🗑️ Excluir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card template -->
+  <template id="libCardTemplate">
+    <article class="card">
+      <div class="thumb-wrap clickable">
+        <img class="thumb" loading="lazy" alt="" />
+        <span class="source-badge"></span>
+        <span class="note-flag" title="Tem anotações">📝</span>
+      </div>
+      <div class="card-body clickable">
+        <h3 class="card-title"></h3>
+        <p class="card-creator"></p>
+        <p class="card-license"></p>
+        <div class="card-tags"></div>
+      </div>
+      <div class="card-actions">
+        <a class="btn download" rel="noopener">⬇ Baixar</a>
+        <button class="btn ghost details" type="button">🔍 Detalhes</button>
+        <button class="btn danger remove" type="button">🗑️</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="/theme.js"></script>
+  <script src="/library.js"></script>
+</body>
+</html>

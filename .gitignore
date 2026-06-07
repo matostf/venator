@@ -1,0 +1,9 @@
+# Local runtime data (lives on the Fly volume in production; backup kept locally).
+data/
+
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
