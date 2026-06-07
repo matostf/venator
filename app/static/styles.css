@@ -1,46 +1,48 @@
 /* ============================================================
-   Acervo de História — "Antiguidade Clássica" theme
-   Marble light (default) + Museum-night dark.
-   Toggle by setting  <html data-theme="dark">  (JS persists it).
+   Acervo de História — "Galeria Noturna" theme
+   Near-black gallery (default) + parchment light.
+   Toggle by setting  <html data-theme="light">  (JS persists it).
    Fonts loaded via <link> in each page head:
-     Cormorant Garamond (display)  ·  Spectral (body)
+     Playfair Display (display)  ·  Spectral (body)
    ============================================================ */
 
 :root {
-  /* Light "mármore" (default) */
+  /* Dark "galeria noturna" (default) */
+  --bg: #0e0c0a;
+  --surface: #17130f;
+  --surface-2: #201b15;
+  --ink: #f5efe6;
+  --muted: #b9ad97;
+  --line: #2c251c;
+  --line-strong: #3d3426;
+  --accent: #c9a227;        /* ouro */
+  --accent-hover: #e0bb43;
+  --on-accent: #14110a;
+  --gold: #c9a227;
+  --danger: #d4654f;
+  --shadow: 0 14px 44px rgba(0, 0, 0, 0.7);
+  --glow: 0 0 0 1px color-mix(in srgb, var(--gold) 55%, transparent), 0 12px 40px rgba(0, 0, 0, 0.6);
+  --radius: 4px;
+  /* Greek meander strip (gold), used on decorative ::before/::after */
+  --meander: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16' viewBox='0 0 24 16'%3E%3Cpath d='M0 14 H24 M4 14 V4 H20 V12 H10 V8 H15' fill='none' stroke='%23c9a227' stroke-width='1.6'/%3E%3C/svg%3E");
+}
+
+html[data-theme="light"] {
+  /* Parchment light variant */
   --bg: #f2ede3;
   --surface: #faf7f0;
   --surface-2: #e9e2d4;
-  --ink: #34302b;
+  --ink: #2a2620;
   --muted: #7a7164;
   --line: #ddd3c2;
   --line-strong: #c9bca5;
-  --accent: #c1683f;        /* terracota */
-  --accent-hover: #a8552f;
+  --accent: #a8821f;
+  --accent-hover: #8a6b15;
   --on-accent: #faf7f0;
-  --gold: #b08d57;
+  --gold: #a8821f;
   --danger: #a23b2d;
   --shadow: 0 10px 34px rgba(52, 38, 22, 0.16);
-  --radius: 4px;
-  /* Greek meander strip (gold), used on decorative ::before/::after */
-  --meander: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16' viewBox='0 0 24 16'%3E%3Cpath d='M0 14 H24 M4 14 V4 H20 V12 H10 V8 H15' fill='none' stroke='%23b08d57' stroke-width='1.6'/%3E%3C/svg%3E");
-}
-
-html[data-theme="dark"] {
-  /* Dark "noite no museu" */
-  --bg: #1a1714;
-  --surface: #232019;
-  --surface-2: #2c2820;
-  --ink: #f2ede3;
-  --muted: #b3a890;
-  --line: #38322a;
-  --line-strong: #4a4234;
-  --accent: #d07a4a;
-  --accent-hover: #e08d5c;
-  --on-accent: #1a1714;
-  --gold: #c9a86a;
-  --danger: #c75a47;
-  --shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --glow: 0 8px 26px rgba(52, 38, 22, 0.18);
 }
 
 * { box-sizing: border-box; }
@@ -58,7 +60,7 @@ body {
 
 a { color: var(--accent); }
 
-h1, h2, h3 { font-family: "Cormorant Garamond", Georgia, serif; }
+h1, h2, h3 { font-family: "Playfair Display", Georgia, serif; }
 
 /* ---- Top bar ---- */
 .topbar {
@@ -71,7 +73,7 @@ h1, h2, h3 { font-family: "Cormorant Garamond", Georgia, serif; }
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 1px 0 var(--gold);   /* subtle gilded rule */
+  box-shadow: 0 1px 0 var(--gold);   /* gilded rule */
 }
 .topbar::after {
   /* Greek meander strip under the header */
@@ -80,16 +82,16 @@ h1, h2, h3 { font-family: "Cormorant Garamond", Georgia, serif; }
   left: 0; right: 0; bottom: -8px;
   height: 8px;
   background: var(--meander) repeat-x center / auto 16px;
-  opacity: 0.55;
+  opacity: 0.5;
   pointer-events: none;
 }
 .brand { display: flex; align-items: center; gap: 14px; }
-.logo { font-size: 2rem; line-height: 1; filter: saturate(0.85); }
+.logo { font-size: 2rem; line-height: 1; }
 .topbar h1 {
   margin: 0;
-  font-size: 1.7rem;
+  font-size: 1.6rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   line-height: 1.05;
 }
 .tagline { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; font-style: italic; }
@@ -118,7 +120,7 @@ h1, h2, h3 { font-family: "Cormorant Garamond", Georgia, serif; }
   font-family: "Spectral", serif;
   margin-left: 6px;
 }
-.navlink.active .badge { background: rgba(255, 255, 255, 0.22); color: #fff; }
+.navlink.active .badge { background: rgba(0, 0, 0, 0.28); color: #fff; }
 
 .theme-toggle {
   background: var(--surface-2);
@@ -160,7 +162,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 36px 28px; }
   color: var(--ink);
 }
 #query::placeholder { color: var(--muted); font-style: italic; }
-#query:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+#query:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
 
 #searchBtn {
   background: var(--accent);
@@ -168,12 +170,11 @@ main { max-width: 1240px; margin: 0 auto; padding: 36px 28px; }
   border: none;
   padding: 0 30px;
   border-radius: var(--radius);
-  font-size: 1rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   cursor: pointer;
-  font-family: "Cormorant Garamond", serif;
-  font-size: 1.2rem;
+  font-family: "Playfair Display", serif;
+  font-size: 1.15rem;
   transition: background 0.15s ease;
 }
 #searchBtn:hover { background: var(--accent-hover); }
@@ -202,7 +203,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 36px 28px; }
 /* ---- Status / notes ---- */
 .status { padding: 10px 4px; color: var(--muted); font-size: 0.95rem; font-style: italic; }
 .notes {
-  background: color-mix(in srgb, var(--gold) 14%, var(--surface));
+  background: color-mix(in srgb, var(--gold) 12%, var(--surface));
   border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--line));
   border-left: 3px solid var(--gold);
   border-radius: var(--radius);
@@ -228,9 +229,8 @@ main { max-width: 1240px; margin: 0 auto; padding: 36px 28px; }
   transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
   animation: card-rise 0.4s ease both;
 }
-.card:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: var(--shadow); }
+.card:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: var(--glow); }
 @keyframes card-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-/* staggered reveal for the first cards */
 .card:nth-child(1) { animation-delay: 0.02s; }
 .card:nth-child(2) { animation-delay: 0.06s; }
 .card:nth-child(3) { animation-delay: 0.10s; }
@@ -239,13 +239,13 @@ main { max-width: 1240px; margin: 0 auto; padding: 36px 28px; }
 .card:nth-child(6) { animation-delay: 0.22s; }
 @media (prefers-reduced-motion: reduce) { .card { animation: none; } }
 
-.thumb-wrap { position: relative; background: var(--surface-2); aspect-ratio: 4 / 3; overflow: hidden; }
+.thumb-wrap { position: relative; background: #000; aspect-ratio: 4 / 3; overflow: hidden; }
 .thumb { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
 .card:hover .thumb { transform: scale(1.04); }
 .thumb-wrap.broken { display: flex; align-items: center; justify-content: center; }
 .source-badge {
   position: absolute; top: 8px; left: 8px;
-  background: color-mix(in srgb, var(--gold) 92%, #000); color: #1a1714;
+  background: color-mix(in srgb, var(--gold) 92%, #000); color: #14110a;
   font-family: "Spectral", serif;
   font-size: 0.7rem; font-weight: 600; letter-spacing: 0.03em;
   padding: 3px 9px; border-radius: 3px;
@@ -281,19 +281,19 @@ main { max-width: 1240px; margin: 0 auto; padding: 36px 28px; }
 .btn.save:hover { border-color: var(--gold); }
 .btn.save.saved { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .btn.danger { background: transparent; color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
-.btn.danger:hover { background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.btn.danger:hover { background: color-mix(in srgb, var(--danger) 16%, transparent); }
 .btn:disabled { opacity: 0.6; cursor: wait; }
 
 /* ---- Modal (save dialog) ---- */
 .modal-backdrop[hidden], .lightbox-backdrop[hidden] { display: none !important; }
 .modal-backdrop {
-  position: fixed; inset: 0; background: color-mix(in srgb, #1a1714 70%, transparent);
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.78);
   display: flex; align-items: center; justify-content: center; z-index: 40; padding: 16px;
   backdrop-filter: blur(3px);
 }
 .modal {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-top: 3px solid var(--gold);
   border-radius: var(--radius);
   padding: 26px 28px;
@@ -302,7 +302,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 36px 28px; }
   overflow-y: auto;
   box-shadow: var(--shadow);
 }
-.modal h2 { margin: 0 0 2px; font-size: 1.7rem; font-weight: 600; }
+.modal h2 { margin: 0 0 2px; font-size: 1.6rem; font-weight: 600; }
 .modal-sub { margin: 0 0 18px; color: var(--muted); font-style: italic; }
 .field { display: block; margin-bottom: 16px; font-size: 0.82rem; color: var(--muted); letter-spacing: 0.03em; text-transform: uppercase; }
 .field input[type="text"], .field textarea {
@@ -311,7 +311,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 36px 28px; }
   background: var(--bg); color: var(--ink);
 }
 .field input[type="text"]:focus, .field textarea:focus {
-  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .field textarea { resize: vertical; }
 fieldset.field { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
@@ -360,12 +360,12 @@ fieldset.field legend { padding: 0 4px; }
 .clickable { cursor: pointer; }
 .note-flag {
   position: absolute; top: 8px; right: 8px;
-  background: var(--gold); color: #1a1714; border-radius: 3px; padding: 2px 6px; font-size: 0.78rem;
+  background: var(--gold); color: #14110a; border-radius: 3px; padding: 2px 6px; font-size: 0.78rem;
 }
 
 /* ---- Lightbox ---- */
 .lightbox-backdrop {
-  position: fixed; inset: 0; background: color-mix(in srgb, #14110d 88%, transparent);
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.92);
   display: flex; align-items: center; justify-content: center; z-index: 50; padding: 24px;
   backdrop-filter: blur(4px);
 }
@@ -383,14 +383,14 @@ fieldset.field legend { padding: 0 4px; }
 }
 .lightbox-close {
   position: absolute; top: 12px; right: 14px; z-index: 2;
-  background: color-mix(in srgb, var(--gold) 90%, #000); color: #1a1714; border: none; border-radius: 50%;
+  background: color-mix(in srgb, var(--gold) 90%, #000); color: #14110a; border: none; border-radius: 50%;
   width: 36px; height: 36px; font-size: 1.1rem; cursor: pointer; font-weight: 700;
 }
 .lightbox-close:hover { background: var(--gold); }
-.lightbox-img { background: #14110d; display: flex; align-items: center; justify-content: center; }
+.lightbox-img { background: #000; display: flex; align-items: center; justify-content: center; }
 .lightbox-img img { max-width: 100%; max-height: 92vh; object-fit: contain; display: block; }
 .lightbox-info { padding: 26px 28px; overflow-y: auto; }
-.lightbox-info h2 { margin: 0 0 4px; font-size: 1.8rem; font-weight: 600; line-height: 1.15; }
+.lightbox-info h2 { margin: 0 0 4px; font-size: 1.7rem; font-weight: 600; line-height: 1.15; }
 .lb-creator { margin: 0 0 4px; color: var(--muted); font-style: italic; }
 .lb-meta { margin: 0 0 16px; font-size: 0.82rem; color: var(--accent); font-weight: 600; letter-spacing: 0.02em; }
 .lb-attrib {
@@ -405,22 +405,22 @@ fieldset.field legend { padding: 0 4px; }
 .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
 .login-card {
   position: relative;
-  background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--gold); border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line-strong); border-top: 3px solid var(--gold); border-radius: var(--radius);
   padding: 44px 36px 38px; width: min(380px, 94vw); text-align: center; box-shadow: var(--shadow);
 }
 .login-card::after {
   content: ""; position: absolute; left: 28px; right: 28px; bottom: 18px; height: 16px;
-  background: var(--meander) repeat-x center / auto 16px; opacity: 0.4;
+  background: var(--meander) repeat-x center / auto 16px; opacity: 0.45;
 }
 .login-logo { font-size: 2.8rem; }
-.login-card h1 { margin: 10px 0 4px; font-size: 1.9rem; font-weight: 600; letter-spacing: 0.01em; }
+.login-card h1 { margin: 10px 0 4px; font-size: 1.8rem; font-weight: 600; letter-spacing: 0.01em; }
 .login-sub { margin: 0 0 24px; color: var(--muted); font-size: 0.95rem; font-style: italic; }
 .login-card input {
   width: 100%; padding: 13px 14px; border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--bg); color: var(--ink); font-size: 1rem; margin-bottom: 14px; font-family: "Spectral", serif;
 }
-.login-card input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
-.login-card .btn { width: 100%; padding: 13px; font-size: 1.2rem; font-family: "Cormorant Garamond", serif; margin-bottom: 26px; }
+.login-card input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.login-card .btn { width: 100%; padding: 13px; font-size: 1.15rem; font-family: "Playfair Display", serif; margin-bottom: 26px; }
 .login-error { color: var(--danger); font-size: 0.88rem; margin: 0 0 12px; }
 
 @media (max-width: 760px) {

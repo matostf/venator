@@ -8,7 +8,7 @@
   const root = document.documentElement;
 
   function current() {
-    return root.getAttribute("data-theme") || "light";
+    return root.getAttribute("data-theme") || "dark";
   }
 
   function apply(theme) {
