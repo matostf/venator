@@ -187,11 +187,16 @@ def _is_valid_email(email: str) -> bool:
     return "@" in email and "." in email.split("@")[-1] and len(email) <= 254
 
 
-def _login_session(request: Request, uid, email: str) -> None:
+def _enter(request: Request, uid: Optional[int], email: str, is_admin: bool = False):
+    """Start a logged-in session and redirect home. ``uid`` is the integer
+    users.id for a real account, or None for the master-password admin (tracked
+    separately via ``is_admin`` so the session never mixes id types)."""
     request.session.clear()
     request.session["auth"] = True
     request.session["uid"] = uid
     request.session["email"] = email
+    request.session["is_admin"] = is_admin
+    return RedirectResponse(url="/", status_code=303)
 
 
 def _reset_base(request: Request) -> str:
@@ -221,13 +226,11 @@ def login_page(request: Request):
 def login_submit(request: Request, email: str = Form(""), password: str = Form(...)):
     user = db.get_user_by_email(email) if email else None
     if user and auth.verify_password(password, user["password_hash"]):
-        _login_session(request, user["id"], user["email"])
-        return RedirectResponse(url="/", status_code=303)
+        return _enter(request, user["id"], user["email"])
 
     # Master password fallback (admin always has a way in). Constant-time compare.
     if auth.secret_matches(password, APP_PASSWORD):
-        _login_session(request, "admin", email or "admin")
-        return RedirectResponse(url="/", status_code=303)
+        return _enter(request, None, email or "admin", is_admin=True)
 
     return HTMLResponse(
         _auth_page("Entrar", _login_inner(error="E-mail ou senha incorretos.")),
@@ -262,17 +265,16 @@ def register_submit(
         return fail("A senha precisa ter pelo menos 8 caracteres.")
     if password != password2:
         return fail("As senhas não coincidem.")
-    if db.get_user_by_email(email):
-        return fail("Já existe uma conta com este e-mail.")
 
+    # create_user does INSERT OR IGNORE and returns None on a duplicate e-mail,
+    # so it's the single source of truth — no separate existence check needed.
     user = db.create_user(email, name, auth.hash_password(password), _now())
-    if not user:  # race: created between the check and the insert
+    if not user:
         return fail("Já existe uma conta com este e-mail.")
 
     global _has_users
     _has_users = True  # auth is now required even without APP_PASSWORD
-    _login_session(request, user["id"], user["email"])
-    return RedirectResponse(url="/", status_code=303)
+    return _enter(request, user["id"], user["email"])
 
 
 @app.get("/forgot", response_class=HTMLResponse)
