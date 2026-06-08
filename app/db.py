@@ -69,11 +69,12 @@ CREATE TABLE IF NOT EXISTS collection_images (
 );
 
 CREATE TABLE IF NOT EXISTS users (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    email          TEXT UNIQUE NOT NULL,   -- stored lowercased
-    name           TEXT,
-    password_hash  TEXT NOT NULL,
-    created_at     TEXT
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    email           TEXT UNIQUE NOT NULL,   -- stored lowercased
+    name            TEXT,
+    password_hash   TEXT NOT NULL,
+    created_at      TEXT,
+    session_version INTEGER NOT NULL DEFAULT 0  -- bumped to invalidate sessions
 );
 
 CREATE TABLE IF NOT EXISTS password_resets (
@@ -100,9 +101,18 @@ def init_db() -> None:
     conn = get_conn()
     try:
         conn.executescript(SCHEMA)
+        # Migration: add columns that may be missing on an older database.
+        _ensure_column(conn, "users", "session_version", "INTEGER NOT NULL DEFAULT 0")
         conn.commit()
     finally:
         conn.close()
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, decl: str) -> None:
+    """Add ``column`` to ``table`` if it isn't there yet (idempotent migration)."""
+    cols = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    if column not in cols:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
 
 
 # --------------------------------------------------------------------------
@@ -495,12 +505,28 @@ def create_user(email: str, name: str, password_hash: str, created_at: str) -> O
 
 
 def set_user_password(user_id: int, password_hash: str) -> None:
+    """Set a new password hash and bump session_version so existing logged-in
+    sessions for this user are invalidated on their next request."""
     conn = get_conn()
     try:
         conn.execute(
-            "UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id)
+            "UPDATE users SET password_hash = ?, session_version = session_version + 1 "
+            "WHERE id = ?",
+            (password_hash, user_id),
         )
         conn.commit()
+    finally:
+        conn.close()
+
+
+def get_session_version(user_id: int) -> Optional[int]:
+    """Current session_version for a user, or None if the user no longer exists."""
+    conn = get_conn()
+    try:
+        row = conn.execute(
+            "SELECT session_version FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+        return row["session_version"] if row else None
     finally:
         conn.close()
 
@@ -508,6 +534,11 @@ def set_user_password(user_id: int, password_hash: str) -> None:
 def create_reset_token(user_id: int, token: str, expires_at: str, created_at: str) -> None:
     conn = get_conn()
     try:
+        # Opportunistic cleanup so the table doesn't grow unbounded: drop tokens
+        # already used or expired (ISO timestamps compare lexicographically).
+        conn.execute(
+            "DELETE FROM password_resets WHERE used = 1 OR expires_at < ?", (created_at,)
+        )
         conn.execute(
             "INSERT INTO password_resets (token, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
             (token, user_id, expires_at, created_at),
