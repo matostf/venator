@@ -65,6 +65,23 @@ with TestClient(app) as client:  # context manager runs startup (init_db)
     )
     check(dup.status_code == 400, "duplicate e-mail rejected")
 
+# Changing the password (bumping session_version) invalidates a live session on
+# its next request. Use a dedicated client/user so other checks aren't affected.
+with TestClient(app) as inv_client:
+    from app import auth as _auth  # noqa: E402
+    from app import db as _db  # noqa: E402
+
+    r = inv_client.post(
+        "/register",
+        data={"email": "inv@example.com", "password": "segredo123", "password2": "segredo123"},
+        follow_redirects=False,
+    )
+    check(r.status_code == 303, "invalidation: register throwaway user")
+    check(inv_client.get("/api/sources").status_code == 200, "invalidation: authed before change")
+    uid = _db.get_user_by_email("inv@example.com")["id"]
+    _db.set_user_password(uid, _auth.hash_password("trocada12345"))
+    check(inv_client.get("/api/sources").status_code == 401, "session invalidated after password change")
+
 with TestClient(app) as client:
     # --- Login flows on a fresh client (no cookie) ---
     wrong = client.post("/login", data={"email": "ci@example.com", "password": "errada"})

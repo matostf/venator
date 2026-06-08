@@ -18,7 +18,7 @@ from typing import Callable, Dict, List, Optional
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import Body, FastAPI, Form, HTTPException, Query, Request
+from fastapi import BackgroundTasks, Body, FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import (
     FileResponse,
     HTMLResponse,
@@ -187,16 +187,33 @@ def _is_valid_email(email: str) -> bool:
     return "@" in email and "." in email.split("@")[-1] and len(email) <= 254
 
 
-def _enter(request: Request, uid: Optional[int], email: str, is_admin: bool = False):
+def _enter(request: Request, uid: Optional[int], email: str, is_admin: bool = False, sv: int = 0):
     """Start a logged-in session and redirect home. ``uid`` is the integer
     users.id for a real account, or None for the master-password admin (tracked
-    separately via ``is_admin`` so the session never mixes id types)."""
+    separately via ``is_admin`` so the session never mixes id types). ``sv`` is
+    the account's session_version, checked per request so a password reset can
+    invalidate this session."""
     request.session.clear()
     request.session["auth"] = True
     request.session["uid"] = uid
     request.session["email"] = email
     request.session["is_admin"] = is_admin
+    request.session["sv"] = sv
     return RedirectResponse(url="/", status_code=303)
+
+
+def _session_valid(request: Request) -> bool:
+    """Whether an authenticated session is still good. The master-password admin
+    is always valid; a real account is valid only while its stored session_version
+    still matches the current one (a password reset bumps it, logging out every
+    existing session)."""
+    if request.session.get("is_admin"):
+        return True
+    uid = request.session.get("uid")
+    if not isinstance(uid, int):
+        return False
+    current = db.get_session_version(uid)
+    return current is not None and current == request.session.get("sv")
 
 
 def _reset_base(request: Request) -> str:
@@ -226,7 +243,7 @@ def login_page(request: Request):
 def login_submit(request: Request, email: str = Form(""), password: str = Form(...)):
     user = db.get_user_by_email(email) if email else None
     if user and auth.verify_password(password, user["password_hash"]):
-        return _enter(request, user["id"], user["email"])
+        return _enter(request, user["id"], user["email"], sv=user["session_version"])
 
     # Master password fallback (admin always has a way in). Constant-time compare.
     if auth.secret_matches(password, APP_PASSWORD):
@@ -274,7 +291,7 @@ def register_submit(
 
     global _has_users
     _has_users = True  # auth is now required even without APP_PASSWORD
-    return _enter(request, user["id"], user["email"])
+    return _enter(request, user["id"], user["email"], sv=user["session_version"])
 
 
 @app.get("/forgot", response_class=HTMLResponse)
@@ -292,20 +309,22 @@ def forgot_page(request: Request):
 
 
 @app.post("/forgot", response_class=HTMLResponse)
-def forgot_submit(request: Request, email: str = Form(...)):
-    # Generate + send the reset link only for a real account. We never disclose
-    # the link in the HTTP response (that would allow account takeover); when
-    # SMTP is unconfigured, send_reset_email logs it to the server console so an
-    # admin can still recover an account from the logs (e.g. `fly logs`).
+def forgot_submit(request: Request, background: BackgroundTasks, email: str = Form(...)):
+    # Generate the reset link only for a real account. We never disclose the link
+    # in the HTTP response (that would allow account takeover); when SMTP is
+    # unconfigured, send_reset_email logs it to the server console so an admin can
+    # still recover an account from the logs (e.g. `fly logs`). The (potentially
+    # slow) send runs as a background task AFTER the response is returned, so the
+    # response time doesn't reveal whether the account exists (no enumeration).
     user = db.get_user_by_email(email)
     if user:
         token = auth.new_reset_token()
         expires = _dt.datetime.now() + _dt.timedelta(hours=auth.RESET_TOKEN_TTL_HOURS)
         db.create_reset_token(user["id"], token, expires.isoformat(timespec="seconds"), _now())
         reset_url = f"{_reset_base(request)}/reset?token={token}"
-        auth.send_reset_email(user["email"], reset_url)
+        background.add_task(auth.send_reset_email, user["email"], reset_url)
 
-    # Same generic response whether or not the account exists (no enumeration).
+    # Same generic response whether or not the account exists.
     inner = """
       <p class="login-sub">Se houver uma conta com esse e-mail, enviamos um link para
       redefinir a senha. Verifique sua caixa de entrada (e o spam).</p>
@@ -696,10 +715,14 @@ async def auth_guard(request: Request, call_next):
         return await call_next(request)
 
     path = request.url.path
-    if path in _PUBLIC_PATHS or request.session.get("auth"):
+    if path in _PUBLIC_PATHS:
+        return await call_next(request)
+    if request.session.get("auth") and _session_valid(request):
         return await call_next(request)
 
-    # Not logged in: APIs get a clean 401, pages get redirected to login.
+    # Not logged in (or the session was invalidated, e.g. after a password
+    # reset): drop the cookie, give APIs a clean 401 and pages a login redirect.
+    request.session.clear()
     if path.startswith("/api/"):
         return JSONResponse({"detail": "Não autenticado."}, status_code=401)
     return RedirectResponse(url="/login", status_code=303)
