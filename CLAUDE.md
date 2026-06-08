@@ -29,9 +29,10 @@ No test suite or linter is configured.
   plus `/styles.css` `/theme.js` `/favicon.ico`) requires login. Users register their own
   e-mail/password accounts (shared library — no per-user data); `APP_PASSWORD` also works as
   a master/admin password. Searches all sources in parallel via `asyncio` + `httpx`.
-- `app/auth.py` — auth helpers (stdlib only): PBKDF2 password hashing, reset-token
-  generation, and password-reset e-mail over SMTP (`SMTP_*` env vars). With SMTP unset, the
-  reset link is logged to the console (and shown on the page) as a fallback.
+- `app/auth.py` — auth helpers (stdlib only): PBKDF2 password hashing, constant-time
+  secret compare, reset-token generation, and password-reset e-mail over SMTP (`SMTP_*` env
+  vars). With SMTP unset, the reset link is logged to the console (never shown in the HTTP
+  response). Auth is enforced when `APP_PASSWORD` is set OR any user account exists.
 - `app/db.py` — SQLite access. `DATA_DIR` (env, defaults to `./data`) holds `library.db`,
   `images/`, and `thumbs/`. On Fly this is the persistent volume `acervo_data` at `/data`.
 - `app/sources/` — one module per source, each exposing an async `search()` returning

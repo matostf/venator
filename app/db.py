@@ -508,6 +508,11 @@ def set_user_password(user_id: int, password_hash: str) -> None:
 def create_reset_token(user_id: int, token: str, expires_at: str, created_at: str) -> None:
     conn = get_conn()
     try:
+        # Opportunistic cleanup so the table doesn't grow unbounded: drop tokens
+        # already used or expired (ISO timestamps compare lexicographically).
+        conn.execute(
+            "DELETE FROM password_resets WHERE used = 1 OR expires_at < ?", (created_at,)
+        )
         conn.execute(
             "INSERT INTO password_resets (token, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
             (token, user_id, expires_at, created_at),

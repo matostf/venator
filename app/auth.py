@@ -40,6 +40,13 @@ def hash_password(password: str) -> str:
     return f"{_PBKDF2_ALGO}${_PBKDF2_ITERATIONS}${salt.hex()}${dk.hex()}"
 
 
+def secret_matches(candidate: str, secret: str) -> bool:
+    """Constant-time comparison for fixed secrets (e.g. the master password)."""
+    if not secret:
+        return False
+    return hmac.compare_digest(candidate.encode("utf-8"), secret.encode("utf-8"))
+
+
 def verify_password(password: str, stored: str) -> bool:
     """Constant-time check of ``password`` against a stored hash string."""
     try:

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as _dt
+import logging
 import mimetypes
 import os
 import urllib.parse
@@ -37,20 +38,40 @@ load_dotenv()
 
 app = FastAPI(title="Acervo de História")
 
+log = logging.getLogger("acervo")
+
 STATIC_DIR = Path(__file__).parent / "static"
 
 # ---- Authentication config ----
-# Auth is ON when APP_PASSWORD is set; if it's empty (local dev) auth is OFF and
-# the app is fully open. When ON, users sign in with their own e-mail/password
-# account (see the users table); APP_PASSWORD additionally works as a master
-# password so an admin always has a way in. SECRET_KEY signs the session cookie —
-# set a long random value in production.
+# Auth is ON when APP_PASSWORD is set OR any user account exists. It's only OFF
+# (app fully open, for local dev) when there's no APP_PASSWORD and no users yet.
+# When ON, users sign in with their own e-mail/password account (see the users
+# table); APP_PASSWORD additionally works as a master password so an admin always
+# has a way in. SECRET_KEY signs the session cookie — set a long random value in
+# production.
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-secret-change-me")
 
-# Public base URL used to build absolute password-reset links (falls back to the
-# request's own host when unset).
+# Public base URL used to build absolute password-reset links. Set this in
+# production: when unset we fall back to the request host, which is attacker-
+# controllable (Host-header poisoning of reset links).
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "").rstrip("/")
+
+# Cache: once any account exists, auth stays required without a DB hit per
+# request (users are never deleted in this app). When APP_PASSWORD is set we
+# short-circuit before this even matters.
+_has_users = False
+
+
+def _auth_required() -> bool:
+    """Whether login is enforced. True if APP_PASSWORD is set or any user exists."""
+    global _has_users
+    if APP_PASSWORD or _has_users:
+        return True
+    if db.count_users() > 0:
+        _has_users = True
+        return True
+    return False
 
 # Paths reachable without being logged in (auth pages + static login assets).
 _PUBLIC_PATHS = {
@@ -173,9 +194,25 @@ def _login_session(request: Request, uid, email: str) -> None:
     request.session["email"] = email
 
 
+def _reset_base(request: Request) -> str:
+    """Base URL for reset links. Prefer APP_BASE_URL (trusted); fall back to the
+    request's scheme+host only when it isn't set. The fallback is vulnerable to
+    Host-header poisoning, so warn loudly when auth is enforced without it.
+    """
+    if APP_BASE_URL:
+        return APP_BASE_URL
+    if _auth_required():
+        log.warning(
+            "APP_BASE_URL não definido: links de redefinição usam o Host da "
+            "requisição e podem ser forjados. Defina APP_BASE_URL em produção."
+        )
+    u = request.url
+    return f"{u.scheme}://{u.netloc}"
+
+
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    if not APP_PASSWORD or request.session.get("auth"):
+    if not _auth_required() or request.session.get("auth"):
         return RedirectResponse(url="/", status_code=303)
     return HTMLResponse(_auth_page("Entrar", _login_inner()))
 
@@ -187,8 +224,8 @@ def login_submit(request: Request, email: str = Form(""), password: str = Form(.
         _login_session(request, user["id"], user["email"])
         return RedirectResponse(url="/", status_code=303)
 
-    # Master password fallback (admin always has a way in).
-    if APP_PASSWORD and password == APP_PASSWORD:
+    # Master password fallback (admin always has a way in). Constant-time compare.
+    if auth.secret_matches(password, APP_PASSWORD):
         _login_session(request, "admin", email or "admin")
         return RedirectResponse(url="/", status_code=303)
 
@@ -200,7 +237,7 @@ def login_submit(request: Request, email: str = Form(""), password: str = Form(.
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
-    if not APP_PASSWORD or request.session.get("auth"):
+    if request.session.get("auth"):
         return RedirectResponse(url="/", status_code=303)
     return HTMLResponse(_auth_page("Criar conta", _register_inner()))
 
@@ -232,13 +269,15 @@ def register_submit(
     if not user:  # race: created between the check and the insert
         return fail("Já existe uma conta com este e-mail.")
 
+    global _has_users
+    _has_users = True  # auth is now required even without APP_PASSWORD
     _login_session(request, user["id"], user["email"])
     return RedirectResponse(url="/", status_code=303)
 
 
 @app.get("/forgot", response_class=HTMLResponse)
 def forgot_page(request: Request):
-    if not APP_PASSWORD or request.session.get("auth"):
+    if not _auth_required() or request.session.get("auth"):
         return RedirectResponse(url="/", status_code=303)
     inner = """
       <p class="login-sub">Informe seu e-mail e enviaremos um link para redefinir a senha.</p>
@@ -252,28 +291,22 @@ def forgot_page(request: Request):
 
 @app.post("/forgot", response_class=HTMLResponse)
 def forgot_submit(request: Request, email: str = Form(...)):
+    # Generate + send the reset link only for a real account. We never disclose
+    # the link in the HTTP response (that would allow account takeover); when
+    # SMTP is unconfigured, send_reset_email logs it to the server console so an
+    # admin can still recover an account from the logs (e.g. `fly logs`).
     user = db.get_user_by_email(email)
-    dev_link = ""
     if user:
         token = auth.new_reset_token()
-        expires = (_dt.datetime.now() + _dt.timedelta(hours=auth.RESET_TOKEN_TTL_HOURS))
+        expires = _dt.datetime.now() + _dt.timedelta(hours=auth.RESET_TOKEN_TTL_HOURS)
         db.create_reset_token(user["id"], token, expires.isoformat(timespec="seconds"), _now())
-        base = APP_BASE_URL or str(request.base_url).rstrip("/")
-        reset_url = f"{base}/reset?token={token}"
-        sent = auth.send_reset_email(user["email"], reset_url)
-        # Fallback when SMTP isn't set up yet: surface the link so the account
-        # can still be recovered. Once SMTP_* is configured this never shows.
-        if not sent and not auth.smtp_configured():
-            dev_link = (
-                '<p class="login-sub" style="margin-top:14px">SMTP não configurado — '
-                f'use este link (modo de configuração):<br><a href="{_esc(reset_url)}">'
-                "Redefinir minha senha</a></p>"
-            )
+        reset_url = f"{_reset_base(request)}/reset?token={token}"
+        auth.send_reset_email(user["email"], reset_url)
 
-    inner = f"""
+    # Same generic response whether or not the account exists (no enumeration).
+    inner = """
       <p class="login-sub">Se houver uma conta com esse e-mail, enviamos um link para
       redefinir a senha. Verifique sua caixa de entrada (e o spam).</p>
-      {dev_link}
       <p class="login-links"><a href="/login">Voltar ao login</a></p>"""
     return HTMLResponse(_auth_page("Recuperar senha", inner))
 
@@ -327,19 +360,21 @@ def reset_submit(
     row = _valid_reset(token)
     if not row:
         return _invalid_token_page()
-    if len(password) < 8:
+
+    def fail(msg: str):
         return HTMLResponse(
-            _auth_page("Redefinir senha", _reset_form_inner(token, "A senha precisa ter pelo menos 8 caracteres.")),
-            status_code=400,
-        )
-    if password != password2:
-        return HTMLResponse(
-            _auth_page("Redefinir senha", _reset_form_inner(token, "As senhas não coincidem.")),
-            status_code=400,
+            _auth_page("Redefinir senha", _reset_form_inner(token, msg)), status_code=400
         )
 
-    db.set_user_password(row["user_id"], auth.hash_password(password))
+    if len(password) < 8:
+        return fail("A senha precisa ter pelo menos 8 caracteres.")
+    if password != password2:
+        return fail("As senhas não coincidem.")
+
+    # Consume the token first (fail-closed): if anything below fails, the link is
+    # already spent rather than left replayable.
     db.consume_reset_token(token)
+    db.set_user_password(row["user_id"], auth.hash_password(password))
     info = "Senha redefinida com sucesso. Faça login com sua nova senha."
     return HTMLResponse(_auth_page("Entrar", _login_inner(info=info)))
 
@@ -654,8 +689,8 @@ def collections_remove_image(collection_id: int, image_id: int) -> dict:
 # ==========================================================================
 @app.middleware("http")
 async def auth_guard(request: Request, call_next):
-    # No password configured → app is open (local development).
-    if not APP_PASSWORD:
+    # No password configured and no accounts yet → app is open (local dev).
+    if not _auth_required():
         return await call_next(request)
 
     path = request.url.path
