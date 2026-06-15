@@ -439,6 +439,28 @@ def collections_remove_image(collection_id: int, image_id: int) -> dict:
 
 
 # ==========================================================================
+# Reverse image search on Wikimedia Commons.
+# - POST /api/reverse/find       — description+hints → ranked Commons candidates
+# - GET  /api/reverse/normalize  — any Commons URL → canonical filename + URLs
+# ==========================================================================
+from .reverse import ReverseQuery, normalize_url, run_reverse  # noqa: E402
+
+
+@app.post("/api/reverse/find")
+async def api_reverse_find(query: ReverseQuery) -> dict:
+    response = await run_reverse(query)
+    return response.model_dump()
+
+
+@app.get("/api/reverse/normalize")
+def api_reverse_normalize(url: str = Query(..., description="Any Commons-related image URL")) -> dict:
+    result = normalize_url(url)
+    if not result:
+        raise HTTPException(status_code=400, detail="URL não é um arquivo do Wikimedia Commons")
+    return result
+
+
+# ==========================================================================
 # Middleware (added LAST so SessionMiddleware is outermost and runs first,
 # making request.session available to the auth guard below it).
 # ==========================================================================
