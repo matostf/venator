@@ -442,8 +442,20 @@ def collections_remove_image(collection_id: int, image_id: int) -> dict:
 # Reverse image search on Wikimedia Commons.
 # - POST /api/reverse/find       — description+hints → ranked Commons candidates
 # - GET  /api/reverse/normalize  — any Commons URL → canonical filename + URLs
+# - POST /api/reverse/hash       — image URL → pHash + dHash
+# - POST /api/reverse/dedup      — image (URL or hash) + manifest → duplicate verdict
 # ==========================================================================
-from .reverse import ReverseQuery, normalize_url, run_reverse  # noqa: E402
+from .reverse import (  # noqa: E402
+    DedupRequest,
+    HashRequest,
+    ImageHashes,
+    ReverseQuery,
+    dedup_against,
+    hash_from_url,
+    load_manifest,
+    normalize_url,
+    run_reverse,
+)
 
 
 @app.post("/api/reverse/find")
@@ -458,6 +470,49 @@ def api_reverse_normalize(url: str = Query(..., description="Any Commons-related
     if not result:
         raise HTTPException(status_code=400, detail="URL não é um arquivo do Wikimedia Commons")
     return result
+
+
+@app.post("/api/reverse/hash")
+async def api_reverse_hash(req: HashRequest) -> dict:
+    async with httpx.AsyncClient() as client:
+        try:
+            hashes = await hash_from_url(client, req.url)
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=502, detail=f"Falha ao baixar imagem: {e}")
+    return hashes.to_dict()
+
+
+@app.post("/api/reverse/dedup")
+async def api_reverse_dedup(req: DedupRequest) -> dict:
+    # Resolve the candidate hash: either inline or by downloading the URL.
+    if req.phash:
+        candidate = ImageHashes(
+            phash=req.phash,
+            dhash=req.dhash or req.phash,  # fall back if caller only has phash
+            width=0,
+            height=0,
+        )
+    elif req.url:
+        async with httpx.AsyncClient() as client:
+            try:
+                candidate = await hash_from_url(client, req.url)
+            except httpx.HTTPError as e:
+                raise HTTPException(status_code=502, detail=f"Falha ao baixar imagem: {e}")
+    else:
+        raise HTTPException(status_code=400, detail="Forneça `url` ou (`phash` + `dhash`)")
+
+    # Resolve manifest entries.
+    if req.manifest is not None:
+        entries = [e for e in req.manifest if isinstance(e, dict) and e.get("phash")]
+    elif req.manifest_path:
+        try:
+            entries = load_manifest(req.manifest_path)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail=f"manifest não encontrado: {req.manifest_path}")
+    else:
+        raise HTTPException(status_code=400, detail="Forneça `manifest_path` ou `manifest`")
+
+    return dedup_against(candidate, entries, threshold=req.threshold)
 
 
 # ==========================================================================

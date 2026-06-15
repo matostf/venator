@@ -5,3 +5,6 @@ jinja2
 python-dotenv
 itsdangerous
 python-multipart
+# Reverse image search (P1): perceptual hashing for dedup / by-image lookup.
+Pillow>=10
+imagehash>=4.3

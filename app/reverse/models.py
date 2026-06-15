@@ -45,3 +45,20 @@ class NormalizeResponse(BaseModel):
     file_page_url: str
     upload_url: str
     thumbnail_url: str
+
+
+class HashRequest(BaseModel):
+    url: str
+
+
+class DedupRequest(BaseModel):
+    """Either pass `url` (server downloads + hashes) OR `phash` + `dhash` (caller
+    pre-hashed). And either `manifest_path` (server reads JSON file) OR `manifest`
+    (inline list of entries with `phash`)."""
+
+    url: Optional[str] = None
+    phash: Optional[str] = None
+    dhash: Optional[str] = None
+    manifest_path: Optional[str] = None
+    manifest: Optional[List[dict]] = None
+    threshold: int = 6
