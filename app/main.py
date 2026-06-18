@@ -45,8 +45,12 @@ STATIC_DIR = Path(__file__).parent / "static"
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-secret-change-me")
 
+# Commit deployado, assado na imagem via `fly deploy --build-arg GIT_SHA=$(git rev-parse HEAD)`
+# e servido em /version.json para o painel-projetos comparar com o HEAD local.
+GIT_SHA = os.environ.get("GIT_SHA", "dev")
+
 # Paths reachable without being logged in (the login page + its assets).
-_PUBLIC_PATHS = {"/login", "/logout", "/styles.css", "/theme.js", "/favicon.ico"}
+_PUBLIC_PATHS = {"/login", "/logout", "/styles.css", "/theme.js", "/favicon.ico", "/version.json"}
 
 # Registry of available sources: key -> (label, async search function).
 # NOTE: Art Institute of Chicago is temporarily disabled — its image server is
@@ -78,6 +82,12 @@ def _startup() -> None:
 
 def _now() -> str:
     return _dt.datetime.now().isoformat(timespec="seconds")
+
+
+@app.get("/version.json")
+def version_json():
+    """Marcador self-report do commit deployado (público; lido pelo painel-projetos)."""
+    return JSONResponse({"commit": GIT_SHA})
 
 
 # ==========================================================================
