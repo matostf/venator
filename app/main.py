@@ -29,9 +29,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import db
-from .sources import artic, met, smithsonian, wikimedia
-from .sources.base import USER_AGENT
-from .sources.smithsonian import MissingKeyError
+from .sources import artic, europeana, met, smithsonian, wikimedia
+from .sources.base import USER_AGENT, MissingKeyError
 
 load_dotenv()
 
@@ -61,8 +60,16 @@ SOURCES: Dict[str, tuple[str, Callable]] = {
     "wikimedia": ("Wikimedia Commons", wikimedia.search),
     "met": ("The Met", met.search),
     "smithsonian": ("Smithsonian", smithsonian.search),
+    "europeana": ("Europeana", europeana.search),
 }
 _ = artic  # connector kept for easy re-enable; see note above
+
+# Sources that need an API key to work; used to report `ready` in /api/sources
+# and to skip them gracefully when the key is absent.
+REQUIRED_KEYS: Dict[str, str] = {
+    "smithsonian": "SMITHSONIAN_API_KEY",
+    "europeana": "EUROPEANA_API_KEY",
+}
 
 # content-type -> file extension, for naming downloaded files.
 _CT_EXT = {
@@ -156,13 +163,14 @@ def logout(request: Request):
 @app.get("/api/sources")
 async def list_sources() -> dict:
     """Report which sources exist and whether they're ready to use."""
+
+    def _ready(key: str) -> bool:
+        env = REQUIRED_KEYS.get(key)
+        return env is None or bool(os.environ.get(env))
+
     return {
         "sources": [
-            {
-                "key": key,
-                "label": label,
-                "ready": key != "smithsonian" or bool(os.environ.get("SMITHSONIAN_API_KEY")),
-            }
+            {"key": key, "label": label, "ready": _ready(key)}
             for key, (label, _fn) in SOURCES.items()
         ]
     }
@@ -185,7 +193,7 @@ def _passes_resolution(item_dict: dict, min_res: int) -> bool:
 @app.get("/api/search")
 async def search(
     q: str = Query(..., min_length=1, description="Search terms"),
-    sources: str = Query("wikimedia,met,artic,smithsonian"),
+    sources: str = Query("wikimedia,met,smithsonian,europeana"),
     min_res: int = Query(0, ge=0, description="Minimum width/height in pixels"),
 ) -> dict:
     requested = [s.strip() for s in sources.split(",") if s.strip() in SOURCES]

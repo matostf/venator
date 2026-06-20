@@ -42,3 +42,11 @@ USER_AGENT = (
     "HistoryImageFinder/1.0 (educational classroom tool; "
     "https://example.org; contact: teacher@example.org)"
 )
+
+
+class MissingKeyError(RuntimeError):
+    """Raised by a source when its required API key is not configured.
+
+    The search layer catches this and surfaces a friendly note instead of
+    treating the source as an error.
+    """

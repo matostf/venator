@@ -13,13 +13,9 @@ from typing import List, Optional
 
 import httpx
 
-from .base import ImageResult, USER_AGENT
+from .base import ImageResult, USER_AGENT, MissingKeyError
 
 SEARCH = "https://api.si.edu/openaccess/api/v1.0/search"
-
-
-class MissingKeyError(RuntimeError):
-    """Raised when no Smithsonian API key is configured."""
 
 
 def _best_image(media_item: dict) -> Optional[str]:
