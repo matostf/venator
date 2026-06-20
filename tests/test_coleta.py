@@ -1,7 +1,21 @@
 # garimpo-imagens/tests/test_coleta.py
-from app.coleta import selecionar, para_resolucao
+import json
+
+from app.coleta import carregar_urls_wave, para_resolucao, selecionar
 from app.sources.base import ImageResult
 from app.licenca import classificar
+
+
+def test_carregar_urls_wave_le_urls_e_ignora_ausente(tmp_path):
+    w = {"results": [{"resolucoes": [
+        {"resolucao": {"url": "http://f/1.jpg"}},
+        {"resolucao": None},
+        {"resolucao": {"url": "http://f/2.jpg"}},
+    ]}]}
+    p = tmp_path / "w.json"
+    p.write_text(json.dumps(w), encoding="utf-8")
+    assert carregar_urls_wave(str(p)) == {"http://f/1.jpg", "http://f/2.jpg"}
+    assert carregar_urls_wave(str(tmp_path / "nao_existe.json")) == set()
 
 
 def _img(i, lic):

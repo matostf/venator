@@ -48,6 +48,7 @@ async def run(args) -> int:
     progresso = json.loads(prog_path.read_text()) if prog_path.exists() else {"feitas": []}
 
     ja_no_banco = coleta.carregar_urls_banco(os.path.expanduser(args.banco_db)) if args.banco_db else set()
+    ja_no_banco |= coleta.carregar_urls_wave(*(args.ja_coletado or []))
     resultados: list[dict] = []
     if out_path.exists():
         resultados = json.loads(out_path.read_text(encoding="utf-8")).get("results", [])
@@ -96,6 +97,8 @@ def main() -> int:
     ap.add_argument("--plano", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--banco-db", default="")
+    ap.add_argument("--ja-coletado", action="append", default=[],
+                    help="wave-N.json já coletado a pular (pode repetir)")
     ap.add_argument("--wave", type=int, default=3)
     ap.add_argument("--limite-por-query", type=int, default=0)
     ap.add_argument("--dry", action="store_true")

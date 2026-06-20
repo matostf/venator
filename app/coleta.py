@@ -93,3 +93,25 @@ def carregar_urls_banco(db_path: str) -> set[str]:
     finally:
         con.close()
     return {r[0] for r in rows if r[0]}
+
+
+def carregar_urls_wave(*paths: str) -> set[str]:
+    """URLs (full_image) já presentes em manifestos wave-N.json — para pular numa
+    coleta de top-up o que já foi coletado antes. O banco grava as imagens novas
+    do Commons com url_commons vazio (full_image é URL de upload, não página File:),
+    então deduplicar pela URL do próprio manifesto anterior é o caminho confiável.
+    Arquivos ausentes são ignorados."""
+    import json
+    import os
+    urls: set[str] = set()
+    for p in paths:
+        p = os.path.expanduser(p)
+        if not os.path.exists(p):
+            continue
+        d = json.loads(open(p, encoding="utf-8").read())
+        for r in d.get("results", []):
+            for x in r.get("resolucoes", []):
+                res = x.get("resolucao")
+                if res and res.get("url"):
+                    urls.add(res["url"])
+    return urls
