@@ -37,11 +37,14 @@ No test suite or linter is configured.
   `images/`, and `thumbs/`. On Fly this is the persistent volume `acervo_data` at `/data`.
 - `app/sources/` — one module per source, each exposing an async `search()` returning
   normalized results. Registered in the `SOURCES` dict in `main.py`:
-  - **Active:** `wikimedia` (Wikimedia Commons), `met` (The Met), `smithsonian`.
+  - **Active:** `wikimedia` (Wikimedia Commons), `met` (The Met), `smithsonian`,
+    `europeana` (aggregator; queries `reusability=open` to keep only PD/CC0/CC BY/CC BY-SA).
   - **Disabled:** `artic` (Art Institute of Chicago) — its image server is behind
     Cloudflare bot-protection. Re-enable by adding it back to `SOURCES`.
-  - `base.py` holds the shared `USER_AGENT`. `smithsonian` needs `SMITHSONIAN_API_KEY`
-    (free at api.data.gov); without it the source reports `ready: false`.
+  - `base.py` holds the shared `USER_AGENT` and `MissingKeyError`. Sources that need a key
+    are listed in the `REQUIRED_KEYS` map (`main.py`) and report `ready: false` when it's
+    absent: `smithsonian` (`SMITHSONIAN_API_KEY`, free at api.data.gov) and `europeana`
+    (`EUROPEANA_API_KEY`, free at pro.europeana.eu).
 - `app/static/` — frontend (no build step): `index.html`/`app.js` (search), `library.html`/
   `library.js` (saved library), `styles.css`, `theme.js` (dark mode).
 
@@ -54,7 +57,7 @@ tags, notes, view/file/thumb); `/api/tags`; `/api/collections` (+ add/remove ima
 ## Environment / secrets
 
 Local: copy `.env.example` to `.env`. Production secrets are set on Fly
-(`fly secrets set`): `SECRET_KEY`, `APP_PASSWORD` (both already Deployed). Set
+(`fly secrets set`): `SECRET_KEY`, `APP_PASSWORD`, `EUROPEANA_API_KEY` (all Deployed). Set
 `SMITHSONIAN_API_KEY` similarly to enable that source. For password-reset e-mails set the
 `SMTP_*` vars (and `APP_BASE_URL` so links point at the public host); without SMTP the reset
 link is only logged/shown, not e-mailed.
