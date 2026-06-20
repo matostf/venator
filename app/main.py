@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as _dt
+import logging
 import mimetypes
 import os
 import urllib.parse
@@ -17,7 +18,7 @@ from typing import Callable, Dict, List, Optional
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import Body, FastAPI, Form, HTTPException, Query, Request
+from fastapi import BackgroundTasks, Body, FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import (
     FileResponse,
     HTMLResponse,
@@ -28,7 +29,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import db
+from . import auth, db
 from .sources import artic, europeana, met, smithsonian, wikimedia
 from .sources.base import USER_AGENT, MissingKeyError
 
@@ -36,11 +37,17 @@ load_dotenv()
 
 app = FastAPI(title="Acervo de História")
 
+log = logging.getLogger("acervo")
+
 STATIC_DIR = Path(__file__).parent / "static"
 
 # ---- Authentication config ----
-# Set APP_PASSWORD to require a login. If it's empty (local dev), auth is OFF.
-# SECRET_KEY signs the session cookie — set a long random value in production.
+# Auth is ON when APP_PASSWORD is set OR any user account exists. It's only OFF
+# (app fully open, for local dev) when there's no APP_PASSWORD and no users yet.
+# When ON, users sign in with their own e-mail/password account (see the users
+# table); APP_PASSWORD additionally works as a master password so an admin always
+# has a way in. SECRET_KEY signs the session cookie — set a long random value in
+# production.
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-secret-change-me")
 
@@ -48,8 +55,33 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-secret-change-me")
 # e servido em /version.json para o painel-projetos comparar com o HEAD local.
 GIT_SHA = os.environ.get("GIT_SHA", "dev")
 
-# Paths reachable without being logged in (the login page + its assets).
-_PUBLIC_PATHS = {"/login", "/logout", "/styles.css", "/theme.js", "/favicon.ico", "/version.json"}
+# Public base URL used to build absolute password-reset links. Set this in
+# production: when unset we fall back to the request host, which is attacker-
+# controllable (Host-header poisoning of reset links).
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "").rstrip("/")
+
+# Cache: once any account exists, auth stays required without a DB hit per
+# request (users are never deleted in this app). When APP_PASSWORD is set we
+# short-circuit before this even matters.
+_has_users = False
+
+
+def _auth_required() -> bool:
+    """Whether login is enforced. True if APP_PASSWORD is set or any user exists."""
+    global _has_users
+    if APP_PASSWORD or _has_users:
+        return True
+    if db.count_users() > 0:
+        _has_users = True
+        return True
+    return False
+
+# Paths reachable without being logged in (auth pages + static login assets).
+# /version.json stays public so the painel-projetos can read the deployed commit.
+_PUBLIC_PATHS = {
+    "/login", "/logout", "/register", "/forgot", "/reset",
+    "/styles.css", "/theme.js", "/favicon.ico", "/version.json",
+}
 
 # Registry of available sources: key -> (label, async search function).
 # NOTE: Art Institute of Chicago is temporarily disabled — its image server is
@@ -100,16 +132,21 @@ def version_json():
 # ==========================================================================
 # Authentication
 # ==========================================================================
-def _login_html(error: bool = False) -> str:
-    msg = (
-        '<p class="login-error">Senha incorreta. Tente novamente.</p>' if error else ""
+def _esc(s: str) -> str:
+    return (
+        str(s or "")
+        .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )
+
+
+def _auth_page(title: str, inner: str) -> str:
+    """Wrap an auth form in the shared login card shell."""
     return f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Entrar — Acervo de História</title>
+  <title>{title} — Acervo de História</title>
   <script>
     (function () {{
       var t = localStorage.getItem("theme") || "dark";
@@ -123,32 +160,265 @@ def _login_html(error: bool = False) -> str:
 </head>
 <body>
   <div class="login-wrap">
-    <form class="login-card" method="post" action="/login">
+    <div class="login-card">
       <div class="login-logo">🏛️</div>
       <h1>Acervo de História</h1>
-      <p class="login-sub">Digite a senha para acessar sua biblioteca.</p>
-      {msg}
-      <input type="password" name="password" placeholder="Senha" autofocus required />
-      <button type="submit" class="btn">Entrar</button>
-    </form>
+      {inner}
+    </div>
   </div>
 </body>
 </html>"""
 
 
+def _alert(msg: str, kind: str = "error") -> str:
+    cls = "login-error" if kind == "error" else "login-success"
+    return f'<p class="{cls}">{msg}</p>' if msg else ""
+
+
+def _login_inner(error: str = "", info: str = "") -> str:
+    return f"""
+      <p class="login-sub">Entre com sua conta para acessar a biblioteca.</p>
+      {_alert(error)}{_alert(info, "success")}
+      <form method="post" action="/login">
+        <input type="email" name="email" placeholder="E-mail" autocomplete="username" autofocus required />
+        <input type="password" name="password" placeholder="Senha" autocomplete="current-password" required />
+        <button type="submit" class="btn">Entrar</button>
+      </form>
+      <p class="login-links">
+        <a href="/forgot">Esqueci minha senha</a> · <a href="/register">Criar conta</a>
+      </p>"""
+
+
+def _register_inner(error: str = "", name: str = "", email: str = "") -> str:
+    return f"""
+      <p class="login-sub">Crie sua conta para acessar o acervo.</p>
+      {_alert(error)}
+      <form method="post" action="/register">
+        <input type="text" name="name" placeholder="Nome (opcional)" autocomplete="name" value="{_esc(name)}" />
+        <input type="email" name="email" placeholder="E-mail" autocomplete="username" value="{_esc(email)}" required />
+        <input type="password" name="password" placeholder="Senha (mínimo 8 caracteres)" autocomplete="new-password" minlength="8" required />
+        <input type="password" name="password2" placeholder="Repita a senha" autocomplete="new-password" minlength="8" required />
+        <button type="submit" class="btn">Criar conta</button>
+      </form>
+      <p class="login-links"><a href="/login">Já tenho conta — entrar</a></p>"""
+
+
+def _is_valid_email(email: str) -> bool:
+    email = (email or "").strip()
+    return "@" in email and "." in email.split("@")[-1] and len(email) <= 254
+
+
+def _enter(request: Request, uid: Optional[int], email: str, is_admin: bool = False, sv: int = 0):
+    """Start a logged-in session and redirect home. ``uid`` is the integer
+    users.id for a real account, or None for the master-password admin (tracked
+    separately via ``is_admin`` so the session never mixes id types). ``sv`` is
+    the account's session_version, checked per request so a password reset can
+    invalidate this session."""
+    request.session.clear()
+    request.session["auth"] = True
+    request.session["uid"] = uid
+    request.session["email"] = email
+    request.session["is_admin"] = is_admin
+    request.session["sv"] = sv
+    return RedirectResponse(url="/", status_code=303)
+
+
+def _session_valid(request: Request) -> bool:
+    """Whether an authenticated session is still good. The master-password admin
+    is always valid; a real account is valid only while its stored session_version
+    still matches the current one (a password reset bumps it, logging out every
+    existing session)."""
+    if request.session.get("is_admin"):
+        return True
+    uid = request.session.get("uid")
+    if not isinstance(uid, int):
+        return False
+    current = db.get_session_version(uid)
+    return current is not None and current == request.session.get("sv")
+
+
+def _reset_base(request: Request) -> str:
+    """Base URL for reset links. Prefer APP_BASE_URL (trusted); fall back to the
+    request's scheme+host only when it isn't set. The fallback is vulnerable to
+    Host-header poisoning, so warn loudly when auth is enforced without it.
+    """
+    if APP_BASE_URL:
+        return APP_BASE_URL
+    if _auth_required():
+        log.warning(
+            "APP_BASE_URL não definido: links de redefinição usam o Host da "
+            "requisição e podem ser forjados. Defina APP_BASE_URL em produção."
+        )
+    u = request.url
+    return f"{u.scheme}://{u.netloc}"
+
+
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    if not APP_PASSWORD or request.session.get("auth"):
+    if not _auth_required() or request.session.get("auth"):
         return RedirectResponse(url="/", status_code=303)
-    return HTMLResponse(_login_html())
+    return HTMLResponse(_auth_page("Entrar", _login_inner()))
 
 
 @app.post("/login", response_class=HTMLResponse)
-def login_submit(request: Request, password: str = Form(...)):
-    if APP_PASSWORD and password == APP_PASSWORD:
-        request.session["auth"] = True
+def login_submit(request: Request, email: str = Form(""), password: str = Form(...)):
+    user = db.get_user_by_email(email) if email else None
+    if user and auth.verify_password(password, user["password_hash"]):
+        return _enter(request, user["id"], user["email"], sv=user["session_version"])
+
+    # Master password fallback (admin always has a way in). Constant-time compare.
+    if auth.secret_matches(password, APP_PASSWORD):
+        return _enter(request, None, email or "admin", is_admin=True)
+
+    return HTMLResponse(
+        _auth_page("Entrar", _login_inner(error="E-mail ou senha incorretos.")),
+        status_code=401,
+    )
+
+
+@app.get("/register", response_class=HTMLResponse)
+def register_page(request: Request):
+    if request.session.get("auth"):
         return RedirectResponse(url="/", status_code=303)
-    return HTMLResponse(_login_html(error=True), status_code=401)
+    return HTMLResponse(_auth_page("Criar conta", _register_inner()))
+
+
+@app.post("/register", response_class=HTMLResponse)
+def register_submit(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    password2: str = Form(""),
+    name: str = Form(""),
+):
+    def fail(msg: str):
+        return HTMLResponse(
+            _auth_page("Criar conta", _register_inner(error=msg, name=name, email=email)),
+            status_code=400,
+        )
+
+    if not _is_valid_email(email):
+        return fail("Informe um e-mail válido.")
+    if len(password) < 8:
+        return fail("A senha precisa ter pelo menos 8 caracteres.")
+    if password != password2:
+        return fail("As senhas não coincidem.")
+
+    # create_user does INSERT OR IGNORE and returns None on a duplicate e-mail,
+    # so it's the single source of truth — no separate existence check needed.
+    user = db.create_user(email, name, auth.hash_password(password), _now())
+    if not user:
+        return fail("Já existe uma conta com este e-mail.")
+
+    global _has_users
+    _has_users = True  # auth is now required even without APP_PASSWORD
+    return _enter(request, user["id"], user["email"], sv=user["session_version"])
+
+
+@app.get("/forgot", response_class=HTMLResponse)
+def forgot_page(request: Request):
+    if not _auth_required() or request.session.get("auth"):
+        return RedirectResponse(url="/", status_code=303)
+    inner = """
+      <p class="login-sub">Informe seu e-mail e enviaremos um link para redefinir a senha.</p>
+      <form method="post" action="/forgot">
+        <input type="email" name="email" placeholder="E-mail" autocomplete="username" autofocus required />
+        <button type="submit" class="btn">Enviar link</button>
+      </form>
+      <p class="login-links"><a href="/login">Voltar ao login</a></p>"""
+    return HTMLResponse(_auth_page("Recuperar senha", inner))
+
+
+@app.post("/forgot", response_class=HTMLResponse)
+def forgot_submit(request: Request, background: BackgroundTasks, email: str = Form(...)):
+    # Generate the reset link only for a real account. We never disclose the link
+    # in the HTTP response (that would allow account takeover); when SMTP is
+    # unconfigured, send_reset_email logs it to the server console so an admin can
+    # still recover an account from the logs (e.g. `fly logs`). The (potentially
+    # slow) send runs as a background task AFTER the response is returned, so the
+    # response time doesn't reveal whether the account exists (no enumeration).
+    user = db.get_user_by_email(email)
+    if user:
+        token = auth.new_reset_token()
+        expires = _dt.datetime.now() + _dt.timedelta(hours=auth.RESET_TOKEN_TTL_HOURS)
+        db.create_reset_token(user["id"], token, expires.isoformat(timespec="seconds"), _now())
+        reset_url = f"{_reset_base(request)}/reset?token={token}"
+        background.add_task(auth.send_reset_email, user["email"], reset_url)
+
+    # Same generic response whether or not the account exists.
+    inner = """
+      <p class="login-sub">Se houver uma conta com esse e-mail, enviamos um link para
+      redefinir a senha. Verifique sua caixa de entrada (e o spam).</p>
+      <p class="login-links"><a href="/login">Voltar ao login</a></p>"""
+    return HTMLResponse(_auth_page("Recuperar senha", inner))
+
+
+def _valid_reset(token: str):
+    """Return the reset row if the token exists, is unused and not expired."""
+    row = db.get_reset_token(token) if token else None
+    if not row or row["used"]:
+        return None
+    try:
+        if _dt.datetime.fromisoformat(row["expires_at"]) < _dt.datetime.now():
+            return None
+    except (ValueError, TypeError):
+        return None
+    return row
+
+
+def _reset_form_inner(token: str, error: str = "") -> str:
+    return f"""
+      <p class="login-sub">Crie uma nova senha para sua conta.</p>
+      {_alert(error)}
+      <form method="post" action="/reset">
+        <input type="hidden" name="token" value="{_esc(token)}" />
+        <input type="password" name="password" placeholder="Nova senha (mínimo 8 caracteres)" autocomplete="new-password" minlength="8" autofocus required />
+        <input type="password" name="password2" placeholder="Repita a nova senha" autocomplete="new-password" minlength="8" required />
+        <button type="submit" class="btn">Redefinir senha</button>
+      </form>"""
+
+
+def _invalid_token_page() -> HTMLResponse:
+    inner = """
+      <p class="login-sub">Este link de redefinição é inválido ou expirou.</p>
+      <p class="login-links"><a href="/forgot">Solicitar um novo link</a></p>"""
+    return HTMLResponse(_auth_page("Link inválido", inner), status_code=400)
+
+
+@app.get("/reset", response_class=HTMLResponse)
+def reset_page(request: Request, token: str = Query("")):
+    if not _valid_reset(token):
+        return _invalid_token_page()
+    return HTMLResponse(_auth_page("Redefinir senha", _reset_form_inner(token)))
+
+
+@app.post("/reset", response_class=HTMLResponse)
+def reset_submit(
+    request: Request,
+    token: str = Form(...),
+    password: str = Form(...),
+    password2: str = Form(""),
+):
+    row = _valid_reset(token)
+    if not row:
+        return _invalid_token_page()
+
+    def fail(msg: str):
+        return HTMLResponse(
+            _auth_page("Redefinir senha", _reset_form_inner(token, msg)), status_code=400
+        )
+
+    if len(password) < 8:
+        return fail("A senha precisa ter pelo menos 8 caracteres.")
+    if password != password2:
+        return fail("As senhas não coincidem.")
+
+    # Consume the token first (fail-closed): if anything below fails, the link is
+    # already spent rather than left replayable.
+    db.consume_reset_token(token)
+    db.set_user_password(row["user_id"], auth.hash_password(password))
+    info = "Senha redefinida com sucesso. Faça login com sua nova senha."
+    return HTMLResponse(_auth_page("Entrar", _login_inner(info=info)))
 
 
 @app.get("/logout")
@@ -539,15 +809,19 @@ async def api_reverse_dedup(req: DedupRequest) -> dict:
 # ==========================================================================
 @app.middleware("http")
 async def auth_guard(request: Request, call_next):
-    # No password configured → app is open (local development).
-    if not APP_PASSWORD:
+    # No password configured and no accounts yet → app is open (local dev).
+    if not _auth_required():
         return await call_next(request)
 
     path = request.url.path
-    if path in _PUBLIC_PATHS or request.session.get("auth"):
+    if path in _PUBLIC_PATHS:
+        return await call_next(request)
+    if request.session.get("auth") and _session_valid(request):
         return await call_next(request)
 
-    # Not logged in: APIs get a clean 401, pages get redirected to login.
+    # Not logged in (or the session was invalidated, e.g. after a password
+    # reset): drop the cookie, give APIs a clean 401 and pages a login redirect.
+    request.session.clear()
     if path.startswith("/api/"):
         return JSONResponse({"detail": "Não autenticado."}, status_code=401)
     return RedirectResponse(url="/login", status_code=303)

@@ -25,8 +25,14 @@ No test suite or linter is configured.
 
 - `app/main.py` — all FastAPI routes and app logic. Auth is a session cookie
   (`SessionMiddleware`, signed with `SECRET_KEY`); when `APP_PASSWORD` is set, every path
-  except `_PUBLIC_PATHS` (`/login`, `/logout`, `/styles.css`, `/theme.js`, `/favicon.ico`)
-  requires login. Searches all sources in parallel via `asyncio` + `httpx`.
+  except `_PUBLIC_PATHS` (auth pages `/login` `/register` `/forgot` `/reset` `/logout`,
+  plus `/styles.css` `/theme.js` `/favicon.ico`) requires login. Users register their own
+  e-mail/password accounts (shared library — no per-user data); `APP_PASSWORD` also works as
+  a master/admin password. Searches all sources in parallel via `asyncio` + `httpx`.
+- `app/auth.py` — auth helpers (stdlib only): PBKDF2 password hashing, constant-time
+  secret compare, reset-token generation, and password-reset e-mail over SMTP (`SMTP_*` env
+  vars). With SMTP unset, the reset link is logged to the console (never shown in the HTTP
+  response). Auth is enforced when `APP_PASSWORD` is set OR any user account exists.
 - `app/db.py` — SQLite access. `DATA_DIR` (env, defaults to `./data`) holds `library.db`,
   `images/`, and `thumbs/`. On Fly this is the persistent volume `acervo_data` at `/data`.
 - `app/sources/` — one module per source, each exposing an async `search()` returning
@@ -41,15 +47,17 @@ No test suite or linter is configured.
 
 ## Key routes
 
-`/login` `/logout`; `/api/sources`; `/api/search`; `/api/download`; library CRUD under
-`/api/library*` (save, list, refs, get/delete by id, tags, notes, view/file/thumb);
-`/api/tags`; `/api/collections` (+ add/remove images).
+Auth: `/login` `/register` `/forgot` `/reset` `/logout`. `/api/sources`; `/api/search`;
+`/api/download`; library CRUD under `/api/library*` (save, list, refs, get/delete by id,
+tags, notes, view/file/thumb); `/api/tags`; `/api/collections` (+ add/remove images).
 
 ## Environment / secrets
 
 Local: copy `.env.example` to `.env`. Production secrets are set on Fly
 (`fly secrets set`): `SECRET_KEY`, `APP_PASSWORD` (both already Deployed). Set
-`SMITHSONIAN_API_KEY` similarly to enable that source.
+`SMITHSONIAN_API_KEY` similarly to enable that source. For password-reset e-mails set the
+`SMTP_*` vars (and `APP_BASE_URL` so links point at the public host); without SMTP the reset
+link is only logged/shown, not e-mailed.
 
 ## Data
 

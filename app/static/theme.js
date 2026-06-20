@@ -1,5 +1,21 @@
 "use strict";
 
+// Session guard: if any API call comes back 401 (session expired or the account
+// was logged out), bounce to the login page instead of letting pages render an
+// empty/broken state. Wraps fetch once, before app.js/library.js run.
+(function () {
+  const realFetch = window.fetch.bind(window);
+  let redirecting = false;
+  window.fetch = async (...args) => {
+    const res = await realFetch(...args);
+    if (res.status === 401 && !redirecting) {
+      redirecting = true;
+      window.location.href = "/login";
+    }
+    return res;
+  };
+})();
+
 // Light/dark theme toggle. The current theme is stored on <html data-theme="…">
 // and persisted in localStorage. A tiny inline script in each page's <head>
 // applies the saved theme before paint (avoiding a flash); this file wires the

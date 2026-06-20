@@ -422,6 +422,10 @@ fieldset.field legend { padding: 0 4px; }
 .login-card input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
 .login-card .btn { width: 100%; padding: 13px; font-size: 1.15rem; font-family: "Playfair Display", serif; margin-bottom: 26px; }
 .login-error { color: var(--danger); font-size: 0.88rem; margin: 0 0 12px; }
+.login-success { color: var(--accent); font-size: 0.85rem; margin: 0 0 12px; }
+.login-links { margin: 16px 0 0; font-size: 0.85rem; color: var(--muted); }
+.login-links a { color: var(--accent); text-decoration: none; }
+.login-links a:hover { text-decoration: underline; }
 
 @media (max-width: 760px) {
   .lightbox { grid-template-columns: 1fr; max-height: 94vh; overflow-y: auto; }
