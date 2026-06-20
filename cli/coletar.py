@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 import httpx
+from dotenv import load_dotenv
 
 from app import coleta
 from app.sources import acervos_adapter, europeana, met, smithsonian, wikimedia
@@ -88,6 +89,9 @@ async def run(args) -> int:
 
 
 def main() -> int:
+    # Lê o .env do garimpo (EUROPEANA_API_KEY/SMITHSONIAN_API_KEY) — o CLI não
+    # passa por app/main.py, então carrega aqui, robusto a partir de qualquer cwd.
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env")
     ap = argparse.ArgumentParser(prog="cli.coletar")
     ap.add_argument("--plano", required=True)
     ap.add_argument("--out", required=True)
