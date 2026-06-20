@@ -1,8 +1,15 @@
 """Adapta os conectores síncronos de scripts/acervos.py à interface async
-search() usada pelo coletor. Itens sem URL de imagem direta são descartados."""
+search() usada pelo coletor. Itens sem URL de imagem direta são descartados.
+
+IMPORTANTE: apenas os conectores que expõem uma URL de imagem direta (atualmente
+`rijks` e `harvard`) produzem resultados por este adapter. Os demais (`bnf`, `loc`,
+`walters`, `dpla`, `si`, `openlib`) devolvem apenas URL de página e serão
+descartados silenciosamente até exporem a chave `image` em seus resultados.
+"""
 from __future__ import annotations
 
 import asyncio
+import logging
 import sys
 from pathlib import Path
 from typing import List
@@ -46,4 +53,8 @@ async def search(client: httpx.AsyncClient, query: str, limit: int = 10, *, acer
         r = _para_result(d, acervo, i)
         if r is not None:
             out.append(r)
+    if brutos and not out:
+        logging.getLogger(__name__).warning(
+            f"{len(brutos)} itens de '{acervo}' foram descartados por não terem URL de imagem direta"
+        )
     return out
