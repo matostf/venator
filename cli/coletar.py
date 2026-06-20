@@ -57,11 +57,14 @@ async def run(args) -> int:
             if chave in progresso["feitas"]:
                 continue
             cand = []
+            limit_q = args.limite_por_query or q.get("overfetch", q["cota"] * 2)
             for fonte in q.get("fontes", ["commons"]):
                 try:
-                    cand += await _buscar(client, fonte, q["consulta"], q.get("overfetch", q["cota"] * 2))
+                    cand += await _buscar(client, fonte, q["consulta"], limit_q)
                 except MissingKeyError as e:
                     print(f"  [pulado] {fonte}: {e}", file=sys.stderr)
+                except (httpx.HTTPError, asyncio.TimeoutError) as e:
+                    print(f"  [erro] {fonte}: {e}", file=sys.stderr)
                 await asyncio.sleep(0.4)  # rate-limit cortês
             sel = coleta.selecionar(
                 cand, q["cota"], fonte_label=FONTE_LABEL,
