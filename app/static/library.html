@@ -19,16 +19,16 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <span class="logo">📚</span>
+      <span class="logo"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14" /><path d="M12 6v14" /><path d="M8 8v12" /><path d="M4 4v16" /></svg></span>
       <div>
         <h1>Minha Biblioteca</h1>
         <p class="tagline">Suas imagens salvas no computador, organizadas por tags e coleções</p>
       </div>
     </div>
     <nav class="topnav">
-      <a href="/" class="navlink">🔎 Buscar</a>
-      <a href="/library.html" class="navlink active">📚 Minha Biblioteca <span id="libCount" class="badge">0</span></a>
-      <button id="themeToggle" class="theme-toggle" aria-label="Alternar tema">🌙</button>
+      <a href="/" class="navlink"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg> Buscar</a>
+      <a href="/library.html" class="navlink active"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14" /><path d="M12 6v14" /><path d="M8 8v12" /><path d="M4 4v16" /></svg> Minha Biblioteca <span id="libCount" class="badge">0</span></a>
+      <button id="themeToggle" class="theme-toggle" aria-label="Alternar tema"><svg class="icon icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" /></svg><svg class="icon icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg></button>
       <a href="/logout" class="navlink" title="Sair">Sair</a>
     </nav>
   </header>
@@ -40,7 +40,7 @@
         <option value="">Todas as coleções</option>
       </select>
       <button id="newCollectionBtn" class="btn ghost" style="flex:0 0 auto;">+ Nova coleção</button>
-      <button id="exportCreditsBtn" class="btn ghost" style="flex:0 0 auto;">📋 Copiar créditos</button>
+      <button id="exportCreditsBtn" class="btn ghost" style="flex:0 0 auto;"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M12 11h4" /><path d="M12 16h4" /><path d="M8 11h.01" /><path d="M8 16h.01" /></svg> Copiar créditos</button>
     </div>
 
     <div id="tagChips" class="chip-row"></div>
@@ -52,7 +52,7 @@
   <!-- Lightbox: full-screen detail view -->
   <div id="lightbox" class="lightbox-backdrop" hidden>
     <div class="lightbox">
-      <button class="lightbox-close" id="lbClose" aria-label="Fechar">✕</button>
+      <button class="lightbox-close" id="lbClose" aria-label="Fechar"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></button>
       <div class="lightbox-img">
         <img id="lbImg" alt="" />
       </div>
@@ -63,7 +63,7 @@
 
         <div class="lb-attrib">
           <span id="lbAttrib"></span>
-          <button id="lbCopyCredit" class="btn ghost" type="button">📋 Copiar crédito</button>
+          <button id="lbCopyCredit" class="btn ghost" type="button"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M12 11h4" /><path d="M12 16h4" /><path d="M8 11h.01" /><path d="M8 16h.01" /></svg> Copiar crédito</button>
         </div>
 
         <label class="field">
@@ -72,7 +72,7 @@
         </label>
 
         <label class="field">
-          📝 Anotações (lembretes para a aula)
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" /></svg> Anotações (lembretes para a aula)
           <textarea id="lbNotes" rows="3" placeholder="ex.: usar no slide 4; comparar com mapa de 200 d.C."></textarea>
         </label>
 
@@ -82,10 +82,10 @@
         </fieldset>
 
         <div class="lightbox-actions">
-          <button id="lbSave" class="btn" type="button">💾 Salvar</button>
-          <a id="lbDownload" class="btn ghost">⬇ Baixar</a>
-          <a id="lbSource" class="btn ghost" target="_blank" rel="noopener">↗ Fonte</a>
-          <button id="lbDelete" class="btn danger" type="button">🗑️ Excluir</button>
+          <button id="lbSave" class="btn" type="button"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></svg> Salvar</button>
+          <a id="lbDownload" class="btn ghost"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></svg> Baixar</a>
+          <a id="lbSource" class="btn ghost" target="_blank" rel="noopener"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg> Fonte</a>
+          <button id="lbDelete" class="btn danger" type="button"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg> Excluir</button>
         </div>
       </div>
     </div>
@@ -97,7 +97,7 @@
       <div class="thumb-wrap clickable">
         <img class="thumb" loading="lazy" alt="" />
         <span class="source-badge"></span>
-        <span class="note-flag" title="Tem anotações">📝</span>
+        <span class="note-flag" title="Tem anotações"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" /></svg></span>
       </div>
       <div class="card-body clickable">
         <h3 class="card-title"></h3>
@@ -106,9 +106,9 @@
         <div class="card-tags"></div>
       </div>
       <div class="card-actions">
-        <a class="btn download" rel="noopener">⬇ Baixar</a>
-        <button class="btn ghost details" type="button">🔍 Detalhes</button>
-        <button class="btn danger remove" type="button">🗑️</button>
+        <a class="btn download" rel="noopener"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></svg> Baixar</a>
+        <button class="btn ghost details" type="button"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line x1="11" x2="11" y1="8" y2="14" /><line x1="8" x2="14" y1="11" y2="11" /></svg> Detalhes</button>
+        <button class="btn danger remove" type="button"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg></button>
       </div>
     </article>
   </template>

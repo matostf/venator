@@ -100,7 +100,7 @@ function renderImages(items) {
   gridEl.innerHTML = "";
   if (!items.length) {
     gridEl.innerHTML =
-      '<p class="empty">Nenhuma imagem aqui ainda. Vá em <a href="/">🔎 Buscar</a> e clique em ★ Salvar.</p>';
+      '<p class="empty">Nenhuma imagem aqui ainda. Vá em <a href="/"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg> Buscar</a> e clique em <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" /></svg> Salvar.</p>';
     return;
   }
   const tpl = document.getElementById("libCardTemplate");
@@ -269,7 +269,8 @@ document.getElementById("lbSave").addEventListener("click", async () => {
     alert("Não foi possível salvar as alterações.");
   } finally {
     btn.disabled = false;
-    btn.textContent = "💾 Salvar";
+    btn.innerHTML =
+      '<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></svg> Salvar';
   }
 });
 
@@ -277,7 +278,7 @@ document.getElementById("lbCopyCredit").addEventListener("click", async () => {
   const text = document.getElementById("lbAttrib").textContent;
   try {
     await navigator.clipboard.writeText(text);
-    flash("lbCopyCredit", "✓ Copiado!");
+    flash("lbCopyCredit", CHECK_ICON + " Copiado!");
   } catch {
     /* ignore */
   }
@@ -344,7 +345,7 @@ document.getElementById("exportCreditsBtn").addEventListener("click", async () =
     .join("\n");
   try {
     await navigator.clipboard.writeText(text);
-    flash("exportCreditsBtn", "✓ Copiado!");
+    flash("exportCreditsBtn", CHECK_ICON + " Copiado!");
   } catch {
     const blob = new Blob([text], { type: "text/plain" });
     const a = document.createElement("a");
@@ -354,11 +355,15 @@ document.getElementById("exportCreditsBtn").addEventListener("click", async () =
   }
 });
 
-function flash(id, text) {
+// Lucide "check" icon (line, currentColor) for transient "Copiado!" feedback.
+const CHECK_ICON =
+  '<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>';
+
+function flash(id, html) {
   const btn = document.getElementById(id);
-  const old = btn.textContent;
-  btn.textContent = text;
-  setTimeout(() => (btn.textContent = old), 1400);
+  const old = btn.innerHTML;
+  btn.innerHTML = html;
+  setTimeout(() => (btn.innerHTML = old), 1400);
 }
 
 async function updateLibCount() {

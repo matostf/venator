@@ -1,48 +1,54 @@
 /* ============================================================
-   Acervo de História — "Galeria Noturna" theme
-   Near-black gallery (default) + parchment light.
+   Acervo de História — paleta "Heródoto"
+   Escuro (padrão, acento ciano) + claro pergaminho (acento vinho).
    Toggle by setting  <html data-theme="light">  (JS persists it).
+   Regra de papel: acento de PREENCHIMENTO (--accent) != acento de
+   TEXTO/LINK (--link). No escuro o "dourado" decorativo vira ciano.
    Fonts loaded via <link> in each page head:
      Playfair Display (display)  ·  Spectral (body)
    ============================================================ */
 
 :root {
-  /* Dark "galeria noturna" (default) */
-  --bg: #0e0c0a;
-  --surface: #17130f;
-  --surface-2: #201b15;
-  --ink: #f5efe6;
-  --muted: #b9ad97;
-  --line: #2c251c;
-  --line-strong: #3d3426;
-  --accent: #c9a227;        /* ouro */
-  --accent-hover: #e0bb43;
-  --on-accent: #14110a;
-  --gold: #c9a227;
+  /* Escuro Heródoto (padrão) — acento de preenchimento ciano */
+  --bg: #222426;
+  --surface: #2a2d30;
+  --surface-2: #33373b;
+  --ink: #e8eaeb;
+  --muted: #b2b7ba;
+  --line: #36393d;
+  --line-strong: #464b50;
+  --accent: #2bb7c5;        /* ciano (preenchimento) */
+  --accent-hover: #1e96a2;  /* ciano-2 */
+  --link: #43d3e0;          /* acento de texto/link */
+  --on-accent: #152122;
+  --gold: #4fbcc7;          /* "dourado" -> ciano no escuro (decorativo) */
   --danger: #d4654f;
-  --shadow: 0 14px 44px rgba(0, 0, 0, 0.7);
-  --glow: 0 0 0 1px color-mix(in srgb, var(--gold) 55%, transparent), 0 12px 40px rgba(0, 0, 0, 0.6);
+  --shadow: 0 14px 44px rgba(0, 0, 0, 0.55);
+  --glow: 0 0 0 1px color-mix(in srgb, var(--gold) 55%, transparent), 0 12px 40px rgba(0, 0, 0, 0.5);
   --radius: 4px;
-  /* Greek meander strip (gold), used on decorative ::before/::after */
-  --meander: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16' viewBox='0 0 24 16'%3E%3Cpath d='M0 14 H24 M4 14 V4 H20 V12 H10 V8 H15' fill='none' stroke='%23c9a227' stroke-width='1.6'/%3E%3C/svg%3E");
+  /* Greek meander strip (decorativo), usado em ::before/::after */
+  --meander: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16' viewBox='0 0 24 16'%3E%3Cpath d='M0 14 H24 M4 14 V4 H20 V12 H10 V8 H15' fill='none' stroke='%234fbcc7' stroke-width='1.6'/%3E%3C/svg%3E");
 }
 
 html[data-theme="light"] {
-  /* Parchment light variant */
-  --bg: #f2ede3;
-  --surface: #faf7f0;
-  --surface-2: #e9e2d4;
-  --ink: #2a2620;
-  --muted: #7a7164;
-  --line: #ddd3c2;
-  --line-strong: #c9bca5;
-  --accent: #a8821f;
-  --accent-hover: #8a6b15;
-  --on-accent: #faf7f0;
-  --gold: #a8821f;
+  /* Claro Heródoto (pergaminho) — acento de preenchimento vinho */
+  --bg: #f3ecdc;
+  --surface: #faf5ea;
+  --surface-2: #ebe1cc;
+  --ink: #221c15;
+  --muted: #837359;
+  --line: #d7c9ac;
+  --line-strong: #cbbc9c;
+  --accent: #6e2027;        /* vinho (preenchimento) */
+  --accent-hover: #531318;  /* vinho-2 */
+  --link: #7c2a30;          /* acento de texto/link */
+  --on-accent: #faf5ea;
+  --gold: #9c7a2e;          /* dourado (decorativo) */
   --danger: #a23b2d;
-  --shadow: 0 10px 34px rgba(52, 38, 22, 0.16);
-  --glow: 0 8px 26px rgba(52, 38, 22, 0.18);
+  --shadow: 0 10px 34px rgba(34, 28, 21, 0.16);
+  --glow: 0 8px 26px rgba(34, 28, 21, 0.18);
+  /* meander dourado para o tema claro */
+  --meander: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16' viewBox='0 0 24 16'%3E%3Cpath d='M0 14 H24 M4 14 V4 H20 V12 H10 V8 H15' fill='none' stroke='%239c7a2e' stroke-width='1.6'/%3E%3C/svg%3E");
 }
 
 * { box-sizing: border-box; }
@@ -58,9 +64,31 @@ body {
   transition: background 0.25s ease, color 0.25s ease;
 }
 
-a { color: var(--accent); }
+a { color: var(--link); }
 
 h1, h2, h3 { font-family: "Playfair Display", Georgia, serif; }
+
+/* ---- Lucide line icons (currentColor, sized in em) ---- */
+.icon {
+  width: 1em;
+  height: 1em;
+  stroke-width: 2;
+  vertical-align: -0.125em;
+  flex: 0 0 auto;
+}
+/* Icons inside text/links/buttons inherit the text color via currentColor. */
+.navlink .icon { font-size: 1rem; margin-right: 2px; }
+.brand .logo .icon { font-size: 1em; }
+.btn .icon, .new-collection button .icon { font-size: 0.95rem; margin-right: 4px; }
+.theme-toggle .icon { font-size: 1.15rem; }
+.lightbox-close .icon { font-size: 1.15rem; }
+.note-flag .icon { font-size: 0.85rem; }
+.empty .icon { font-size: 0.95rem; margin: 0 2px; }
+/* Theme toggle shows sun OR moon depending on the active theme. */
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: inline-block; }
+html[data-theme="light"] .theme-toggle .icon-sun { display: inline-block; }
+html[data-theme="light"] .theme-toggle .icon-moon { display: none; }
 
 /* ---- Top bar ---- */
 .topbar {
@@ -86,7 +114,7 @@ h1, h2, h3 { font-family: "Playfair Display", Georgia, serif; }
   pointer-events: none;
 }
 .brand { display: flex; align-items: center; gap: 14px; }
-.logo { font-size: 2rem; line-height: 1; }
+.logo { font-size: 1.75rem; line-height: 1; color: var(--accent); display: inline-flex; }
 .topbar h1 {
   margin: 0;
   font-size: 1.6rem;
@@ -253,12 +281,16 @@ main { max-width: 1240px; margin: 0 auto; padding: 36px 28px; }
 .card-body { padding: 14px 16px; flex: 1; }
 .card-title { margin: 0 0 4px; font-family: "Spectral", serif; font-size: 1rem; font-weight: 600; line-height: 1.3; }
 .card-creator { margin: 0 0 6px; color: var(--muted); font-size: 0.85rem; font-style: italic; }
-.card-license { margin: 0; font-size: 0.75rem; color: var(--accent); font-weight: 600; letter-spacing: 0.02em; }
+.card-license { margin: 0; font-size: 0.75rem; color: var(--link); font-weight: 600; letter-spacing: 0.02em; }
 .card-dims { margin: 3px 0 0; font-size: 0.75rem; color: var(--muted); }
 .card-actions { display: flex; gap: 6px; padding: 0 16px 16px; flex-wrap: wrap; }
 
 .btn {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   text-align: center;
   padding: 9px 10px;
   border-radius: var(--radius);
@@ -392,7 +424,7 @@ fieldset.field legend { padding: 0 4px; }
 .lightbox-info { padding: 26px 28px; overflow-y: auto; }
 .lightbox-info h2 { margin: 0 0 4px; font-size: 1.7rem; font-weight: 600; line-height: 1.15; }
 .lb-creator { margin: 0 0 4px; color: var(--muted); font-style: italic; }
-.lb-meta { margin: 0 0 16px; font-size: 0.82rem; color: var(--accent); font-weight: 600; letter-spacing: 0.02em; }
+.lb-meta { margin: 0 0 16px; font-size: 0.82rem; color: var(--link); font-weight: 600; letter-spacing: 0.02em; }
 .lb-attrib {
   background: var(--surface-2); border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: var(--radius);
   padding: 12px 14px; margin-bottom: 18px; font-size: 0.88rem;
@@ -412,7 +444,7 @@ fieldset.field legend { padding: 0 4px; }
   content: ""; position: absolute; left: 28px; right: 28px; bottom: 18px; height: 16px;
   background: var(--meander) repeat-x center / auto 16px; opacity: 0.45;
 }
-.login-logo { font-size: 2.8rem; }
+.login-logo { font-size: 2.8rem; color: var(--accent); line-height: 1; }
 .login-card h1 { margin: 10px 0 4px; font-size: 1.8rem; font-weight: 600; letter-spacing: 0.01em; }
 .login-sub { margin: 0 0 24px; color: var(--muted); font-size: 0.95rem; font-style: italic; }
 .login-card input {
@@ -422,9 +454,9 @@ fieldset.field legend { padding: 0 4px; }
 .login-card input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
 .login-card .btn { width: 100%; padding: 13px; font-size: 1.15rem; font-family: "Playfair Display", serif; margin-bottom: 26px; }
 .login-error { color: var(--danger); font-size: 0.88rem; margin: 0 0 12px; }
-.login-success { color: var(--accent); font-size: 0.85rem; margin: 0 0 12px; }
+.login-success { color: var(--link); font-size: 0.85rem; margin: 0 0 12px; }
 .login-links { margin: 16px 0 0; font-size: 0.85rem; color: var(--muted); }
-.login-links a { color: var(--accent); text-decoration: none; }
+.login-links a { color: var(--link); text-decoration: none; }
 .login-links a:hover { text-decoration: underline; }
 
 @media (max-width: 760px) {

@@ -34,9 +34,11 @@
     } catch {
       /* ignore */
     }
+    // The button holds both a Moon and a Sun lucide SVG; CSS shows the one that
+    // matches the active theme (see .theme-toggle .icon-sun/.icon-moon rules).
+    // We only keep the tooltip in sync here — no glyph swap.
     const btn = document.getElementById("themeToggle");
     if (btn) {
-      btn.textContent = theme === "dark" ? "🌙" : "☀️";
       btn.title = theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro";
     }
   }
