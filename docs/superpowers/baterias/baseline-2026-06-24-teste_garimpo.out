@@ -1,0 +1,104 @@
+
+==============================================================================
+### HEBREUS — sem período   →   busca='Hebreus'  extra=[]
+  estratégias: ['direct']
+  0.55 | 450x297 | CC0            | Ancient Hebrew Flag.svg
+  0.55 | 480x480 | CC BY-SA 3.0   | Jews montage.jpg
+  0.55 | 5616x4102 | CC BY-SA 3.0   | St Lawrence Jewry, City of London, UK - Diliff.jpg
+  0.55 | 9996x13276 | CC0            | This Is Only Here To Scare Antisemites (Hebrew).svg
+
+==============================================================================
+### HEBREUS — período na descrição   →   busca='Hebreus na Antiguidade'  extra=[]
+  estratégias: ['direct']
+  0.55 | 1280x960 | CC BY 2.0      | Black hebrews Dimona people blurred.jpg
+  0.55 | 600x620 | Public domain  | Codex Vaticanus B, 2Thess. 3,11-18, Hebr. 1,1-2,2.jpg
+  0.55 | 507x600 | Public domain  | Cyrus II le Grand et les Hébreux.jpg
+  0.55 | 985x680 | Public domain  | Herzliya Hebrew Gymnasium, Tel Aviv.jpg
+  0.55 | 2216x1656 | No restriction | Ridpath's history of the world; being an account of the ethnic origin, primiti
+
+==============================================================================
+### HEBREUS — período na flag   →   busca='Hebreus'  extra=['--hint-period', 'Antiguidade']
+  estratégias: ['direct']
+  0.55 | 450x297 | CC0            | Ancient Hebrew Flag.svg
+  0.55 | 480x480 | CC BY-SA 3.0   | Jews montage.jpg
+  0.55 | 5616x4102 | CC BY-SA 3.0   | St Lawrence Jewry, City of London, UK - Diliff.jpg
+  0.55 | 9996x13276 | CC0            | This Is Only Here To Scare Antisemites (Hebrew).svg
+
+==============================================================================
+### FENÍCIOS — sem período   →   busca='Fenícios'  extra=[]
+  estratégias: ['direct']
+  0.55 | 652x576 | CC0            | Limestone Phoenician dancers Cyprus.png
+  0.55 | 714x525 | CC BY-SA 4.0   | Phoenician Hippos ship logo.png
+  0.55 | 3178x4589 | CC BY-SA 2.0   | Phoenician grinning mask - Cagliari, Museo Archeologico Nazionale (26721011486
+  0.55 | 829x779 | CC0            | Phoenician patera Idalium.png
+  0.55 | 3412x5113 | CC BY-SA 3.0   | Tharros - Sardinia - Italy - 25.jpg
+
+==============================================================================
+### FENÍCIOS — período na descrição   →   busca='Fenícios Antiguidade'  extra=[]
+  estratégias: ['direct']
+  0.55 | 1312x400 | CC BY-SA 3.0   | Pedra Bonita 3.jpg
+  0.55 | 2560x1920 | CC BY-SA 3.0   | Pedra Bonita 6.jpg
+  0.55 | 2560x1920 | CC BY-SA 3.0   | Pedra Bonita 9.jpg
+  0.55 | 2303x3232 | CC BY-SA 4.0   | Praia da Pedra do Sal.jpg
+  0.55 | 2160x3840 | CC BY-SA 4.0   | Praia da Pedra do Sal PI.jpg
+
+==============================================================================
+### FENÍCIOS — período na flag   →   busca='Fenícios'  extra=['--hint-period', 'Antiguidade']
+  estratégias: ['direct']
+  0.55 | 652x576 | CC0            | Limestone Phoenician dancers Cyprus.png
+  0.55 | 714x525 | CC BY-SA 4.0   | Phoenician Hippos ship logo.png
+  0.55 | 300x200 | CC0            | Phoenician Language Flag.svg
+  0.55 | 3178x4589 | CC BY-SA 2.0   | Phoenician grinning mask - Cagliari, Museo Archeologico Nazionale (26721011486
+  0.55 | 829x779 | CC0            | Phoenician patera Idalium.png
+
+==============================================================================
+### REFORMA — sem período   →   busca='Reforma Protestante'  extra=[]
+  estratégias: ['direct']
+  0.63 | 5404x4774 | Public domain  | Die Reformation Gustav Eilers nach Wilhelm von Kaulbach.jpg
+  0.63 | 3008x4286 | Public domain  | English primer during reformation.jpg
+  0.63 | 3840x2880 | CC BY-SA 4.0   | Internationales Reformations-Museum in Genf (2026).jpg
+  0.63 | 2045x1720 | CC BY-SA 4.0   | The Protestant Reformation-ar.svg
+  0.55 | 3260x2800 | CC0            | Inscription De Lyon Wycliffe Hus monument réformation Genève.jpg
+
+==============================================================================
+### REFORMA — período na descrição   →   busca='Reforma Protestante século XVI'  extra=[]
+  estratégias: ['direct', 'multilingual']
+  0.63 | 1774x2442 | Public domain  | Causas da decadência dos povos peninsulares nos últimos três séculos.djvu
+  0.58 | 5404x4774 | Public domain  | Die Reformation Gustav Eilers nach Wilhelm von Kaulbach.jpg
+  0.58 | 3840x2880 | CC BY-SA 4.0   | Internationales Reformations-Museum in Genf (2026).jpg
+  0.58 | 2045x1720 | CC BY-SA 4.0   | The Protestant Reformation-ar.svg
+  0.58 | 3054x2387 | CC BY-SA 4.0   | Reformation and Counterreformation in Moldavia-hu.svg
+
+==============================================================================
+### REFORMA — período na flag   →   busca='Reforma Protestante'  extra=['--hint-period', 'século XVI']
+  estratégias: ['direct']
+  0.63 | 5404x4774 | Public domain  | Die Reformation Gustav Eilers nach Wilhelm von Kaulbach.jpg
+  0.63 | 3008x4286 | Public domain  | English primer during reformation.jpg
+  0.63 | 3840x2880 | CC BY-SA 4.0   | Internationales Reformations-Museum in Genf (2026).jpg
+  0.63 | 2045x1720 | CC BY-SA 4.0   | The Protestant Reformation-ar.svg
+  0.55 | 3260x2800 | CC0            | Inscription De Lyon Wycliffe Hus monument réformation Genève.jpg
+
+==============================================================================
+### JOANINO — sem período   →   busca='Período Joanino'  extra=[]
+  estratégias: ['direct']
+  0.55 | 920x715 | CC0            | Chegada de D. João VI à Igreja do Rosário.jpg
+  0.55 | 1204x797 | Public domain  | Departure of H.R.H. the Prince Regent of Portugal for the Brazils (Campaigns o
+  0.55 | 5347x3782 | Public domain  | Embarque da Família Real para o Brasil - Nicolas-Louis-Albert Delerive, attrib
+  0.55 | 3200x1944 | Public domain  | O Príncipe Regente Embarca para o Brasil (Roque Gameiro, Quadros da História d
+  0.55 | 1270x769 | Public domain  | Príncipe Regente de Portugal e toda a Família Real embarcando para Brasil no c
+
+==============================================================================
+### JOANINO — período na descrição   →   busca='Brasil Joanino corte portuguesa 1808'  extra=[]
+  estratégias: []
+  (0 candidatos)
+
+==============================================================================
+### JOANINO — período na flag   →   busca='Período Joanino'  extra=['--hint-period', 'século XIX']
+  estratégias: ['direct']
+  0.55 | 920x715 | CC0            | Chegada de D. João VI à Igreja do Rosário.jpg
+  0.55 | 1204x797 | Public domain  | Departure of H.R.H. the Prince Regent of Portugal for the Brazils (Campaigns o
+  0.55 | 5347x3782 | Public domain  | Embarque da Família Real para o Brasil - Nicolas-Louis-Albert Delerive, attrib
+  0.55 | 3200x1944 | Public domain  | O Príncipe Regente Embarca para o Brasil (Roque Gameiro, Quadros da História d
+  0.55 | 1270x769 | Public domain  | Príncipe Regente de Portugal e toda a Família Real embarcando para Brasil no c
+
+=== FIM ===

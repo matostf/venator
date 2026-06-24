@@ -1,0 +1,34 @@
+
+============================================================================
+### PINTURA — chegada da corte
+    busca='Desembarque da família real portuguesa no Rio de Janeiro 1808'  extra=[]
+  estratégias: []
+  (0 candidatos)
+
+============================================================================
+### CENA DEBRET (com hint-author)
+    busca='corte portuguesa no Rio de Janeiro'  extra=['--hint-author', 'Jean-Baptiste Debret']
+  estratégias: ['direct', 'subcategory_walk']
+  0.98 | 2816x2028 | A Brazilian family in Rio de Janeiro by Jean-Baptiste Debret 1839.jpg
+  0.98 | 379x237 | Jean-Baptiste Debret - Aclamação de D. Pedro II no Rio de Janeiro.JPG
+  0.98 | 794x626 | Jean-Baptiste Debret - Meu ateliê do Catumbi no Rio de Janeiro, 1816.jpg
+  0.98 | 640x344 | Jean Baptiste Debret - Rio de Janeiro (detalhe).jpg
+  0.90 | 400x314 | Baianas-debret.jpg
+
+============================================================================
+### MAPA de período
+    busca='mapa do Reino Unido de Portugal Brasil e Algarves 1815'  extra=[]
+  estratégias: ['direct', 'multilingual']
+  0.55 | 800x1100 | Non-Native American Nations Control over South America 1700 and on.gif
+
+============================================================================
+### GLOBO/localizador
+    busca='Brazil orthographic projection'  extra=[]
+  estratégias: ['direct']
+  0.79 | 541x541 | Brazil (orthographic projection).svg
+  0.79 | 600x600 | Brazilian Empire 1828 (orthographic projection).svg
+  0.71 | 550x550 | BIMSTEC (orthographic projection).svg
+  0.71 | 1443x1443 | British India (orthographic projection).png
+  0.71 | 550x550 | Indian Subcontinent (orthographic projection).svg
+
+=== FIM ===
