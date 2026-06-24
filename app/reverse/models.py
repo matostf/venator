@@ -30,6 +30,7 @@ class ReverseCandidate(BaseModel):
     license: Optional[str] = None
     width: Optional[int] = None
     height: Optional[int] = None
+    date: Optional[str] = None
     source_strategy: str
     similarity_score: float = 0.0
 
