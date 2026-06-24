@@ -120,6 +120,9 @@ def _candidates_from_pages(pages: list, *, strategy: str) -> List[ReverseCandida
         meta = info.get("extmetadata") or {}
         license_name = _strip_html((meta.get("LicenseShortName") or {}).get("value", "")) or "See source"
         author = _strip_html((meta.get("Artist") or {}).get("value", "")) or None
+        raw_date = (meta.get("DateTimeOriginal") or {}).get("value", "") or \
+                   (meta.get("DateTime") or {}).get("value", "")
+        date = _strip_html(raw_date) or None
         title = page.get("title", "")
         if title.startswith("File:"):
             title = title[len("File:"):]
@@ -133,6 +136,7 @@ def _candidates_from_pages(pages: list, *, strategy: str) -> List[ReverseCandida
                 license=license_name,
                 width=info.get("width"),
                 height=info.get("height"),
+                date=date,
                 source_strategy=strategy,
                 similarity_score=0.5,
             )
