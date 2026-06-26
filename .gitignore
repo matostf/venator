@@ -7,3 +7,9 @@ venv/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Config local do Claude Code
+.claude/
+
+# Dumps de acervos externos clonados (ex.: external/walters-api ~43 MB, com .git próprio)
+external/
