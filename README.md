@@ -1,29 +1,51 @@
-# Acervo de História
+# Garimpa
 
-App web (FastAPI) para buscar imagens em acervos de museus de acesso aberto
-(Wikimedia Commons, The Met, Smithsonian) e salvar as escolhidas numa biblioteca
-pessoal com tags, notas e coleções. Interface em português.
+Ferramenta de **linha de comando (CLI)** para **descobrir imagens de licença aberta**
+(domínio público / Creative Commons) em acervos de museus e arquivos de acesso aberto —
+para montar slides de aula de História. Devolve URLs e metadados (**não** baixa imagem nem
+guarda biblioteca); quem guarda e exibe é o projeto-irmão `banco-imagens`.
 
-No ar: https://acervo-historia-matostf.fly.dev
+Dois comandos:
+
+- **`cli.reverse`** — busca por descrição em linguagem natural (PT) no Wikimedia Commons →
+  candidatos ranqueados com URL, licença e metadados. Usado pelo pipeline do `decks-historia`
+  e pela skill `reverse-search`.
+- **`cli.coletar`** — coletor em lote: roda um plano de buscas em várias fontes, filtra por
+  licença e grava o resultado para alimentar o `banco-imagens`.
+
+> **Rota 1 (2026-06):** este repo já teve também um app web (FastAPI na Fly.io, com login e
+> biblioteca pessoal), agora **aposentado** — estava ocioso e redundante com o `banco-imagens`.
+> Restaram só o motor de descoberta + o coletor. O rebuild do motor de busca está pausado na
+> branch `rota1-descoberta-commons`. Branch padrão: `master`.
 
 ## Rodar localmente
 
 ```bash
 python3 -m venv .venv
 ./.venv/bin/pip install -r requirements.txt
-cp .env.example .env            # opcional; sem APP_PASSWORD o login é desativado
-DATA_DIR=./data ./.venv/bin/uvicorn app.main:app --reload --port 8099
+cp .env.example .env   # opcional: chaves de API de fontes extras (Smithsonian, Europeana)
 ```
 
-Abra http://127.0.0.1:8099
-
-## Deploy (Fly.io)
+Buscar uma imagem:
 
 ```bash
-fly deploy
+./.venv/bin/python -m cli.reverse find "família real chegando ao Brasil" \
+    --hint-author "Debret" --hint-period "século XIX" --hint-region "Brasil" --max 10 --json
 ```
 
-Os secrets `SECRET_KEY` e `APP_PASSWORD` já estão configurados na Fly.
-Para habilitar a fonte Smithsonian: `fly secrets set SMITHSONIAN_API_KEY=...`
+Outros subcomandos: `normalize` (canoniza URL do Commons), `hash` (pHash/dHash de uma
+imagem), `dedup` (checa duplicata contra um manifesto).
+
+Coletar em lote (alimenta o `banco-imagens`):
+
+```bash
+./.venv/bin/python -m cli.coletar --plano <plano.json> --out <dir>
+```
+
+## Testes
+
+```bash
+./.venv/bin/python -m pytest -q
+```
 
 Mais detalhes de arquitetura em [CLAUDE.md](CLAUDE.md).
