@@ -25,5 +25,5 @@ jobs:
       - name: Syntax check (compile all sources)
         run: python -m compileall -q app tests
 
-      - name: Smoke test (boots the app, exercises auth flows)
-        run: python tests/test_smoke.py
+      - name: Tests (pytest)
+        run: python -m pytest -q
