@@ -4,65 +4,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-**Acervo de História** — a FastAPI web app for a history teacher to search open-access
-museum/archive APIs, preview results, and save chosen images into a personal library
-(files on disk + SQLite metadata, with tags, notes, and collections). UI is in Portuguese.
+**Garimpa** — a Portuguese-language **CLI/library to discover open-license images** (public
+domain / CC) in open-access museum and archive collections, used to build history slide
+decks. Two entry points:
 
-> Recovered Jun 2026 from the running Fly.io machine (`acervo-historia-matostf`); the
-> original source was not on this machine. `Dockerfile` and `fly.toml` were reconstructed
-> from `fly config show` and the running container.
+- **`cli.reverse`** — keyword/reverse image search over Wikimedia Commons: a natural-language
+  description (PT) → ranked candidates with URLs, license, and metadata.
+- **`cli.coletar`** — batch collector that runs a plan of queries across several sources,
+  filters by license, and writes results to feed the local `banco-imagens` vault.
+
+It is a **library consumed by other tools**, not an app: the `decks-historia` pipeline
+(`wave_workflow_so_pesquisador.js`) and the `reverse-search` skill call `cli.reverse`. It
+returns URLs/metadata and does **not** download images or keep a library — the companion
+`banco-imagens` project is the vault that **guarda + vê** (stores + browses); this one
+**garimpa** (discovers).
+
+> **History — Rota 1 (2026-06):** this repo used to also ship a FastAPI web app/gallery on
+> Fly.io (login, accounts, SMTP, personal library). That layer was **retired**: it was idle
+> (3 images, 0 users) and redundant with `banco-imagens`. Only the discovery engine +
+> collector remain. The `find` engine rebuild (better PT-phrase handling, a real period
+> filter, new ranking) is **paused** on branch `rota1-descoberta-commons` — see
+> `docs/superpowers/specs/2026-06-24-rota1-descoberta-commons-design.md`. Default branch is
+> **`master`**. (`README.md` still describes the old web app — out of date.)
 
 ## Commands
 
 - Setup: `python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt`
-- Run locally: `DATA_DIR=./data ./.venv/bin/uvicorn app.main:app --reload --port 8099`
-  - With no `APP_PASSWORD` set, auth is OFF (login bypassed) — convenient for local dev.
-- Deploy: `fly deploy` (uses `Dockerfile` + `fly.toml`).
-
-No test suite or linter is configured.
+- Search: `./.venv/bin/python -m cli.reverse find "<descrição PT>" [--hint-author X] [--hint-period X] [--hint-region X] [--max N] [--json]`
+  - Other subcommands: `normalize` (canonicalize a Commons URL), `hash` (pHash/dHash of an image), `dedup` (check an image against a manifest).
+- Batch collect: `./.venv/bin/python -m cli.coletar --plano <plano.json> --out <dir> [--banco-db DB] [--ja-coletado FILE] [--wave N] [--limite-por-query N] [--dry]`
+- Tests: `./.venv/bin/python -m pytest -q` (pytest; ~19 tests over the engine + collector). CI runs `compileall` + `pytest`.
 
 ## Architecture
 
-- `app/main.py` — all FastAPI routes and app logic. Auth is a session cookie
-  (`SessionMiddleware`, signed with `SECRET_KEY`); when `APP_PASSWORD` is set, every path
-  except `_PUBLIC_PATHS` (auth pages `/login` `/register` `/forgot` `/reset` `/logout`,
-  plus `/styles.css` `/theme.js` `/favicon.ico`) requires login. Users register their own
-  e-mail/password accounts (shared library — no per-user data); `APP_PASSWORD` also works as
-  a master/admin password. Searches all sources in parallel via `asyncio` + `httpx`.
-- `app/auth.py` — auth helpers (stdlib only): PBKDF2 password hashing, constant-time
-  secret compare, reset-token generation, and password-reset e-mail over SMTP (`SMTP_*` env
-  vars). With SMTP unset, the reset link is logged to the console (never shown in the HTTP
-  response). Auth is enforced when `APP_PASSWORD` is set OR any user account exists.
-- `app/db.py` — SQLite access. `DATA_DIR` (env, defaults to `./data`) holds `library.db`,
-  `images/`, and `thumbs/`. On Fly this is the persistent volume `acervo_data` at `/data`.
-- `app/sources/` — one module per source, each exposing an async `search()` returning
-  normalized results. Registered in the `SOURCES` dict in `main.py`:
-  - **Active:** `wikimedia` (Wikimedia Commons), `met` (The Met), `smithsonian`,
-    `europeana` (aggregator; queries `reusability=open` to keep only PD/CC0/CC BY/CC BY-SA).
-  - **Disabled:** `artic` (Art Institute of Chicago) — its image server is behind
-    Cloudflare bot-protection. Re-enable by adding it back to `SOURCES`.
-  - `base.py` holds the shared `USER_AGENT` and `MissingKeyError`. Sources that need a key
-    are listed in the `REQUIRED_KEYS` map (`main.py`) and report `ready: false` when it's
-    absent: `smithsonian` (`SMITHSONIAN_API_KEY`, free at api.data.gov) and `europeana`
-    (`EUROPEANA_API_KEY`, free at pro.europeana.eu).
-- `app/static/` — frontend (no build step): `index.html`/`app.js` (search), `library.html`/
-  `library.js` (saved library), `styles.css`, `theme.js` (dark mode).
-
-## Key routes
-
-Auth: `/login` `/register` `/forgot` `/reset` `/logout`. `/api/sources`; `/api/search`;
-`/api/download`; library CRUD under `/api/library*` (save, list, refs, get/delete by id,
-tags, notes, view/file/thumb); `/api/tags`; `/api/collections` (+ add/remove images).
+- `cli/reverse.py` — the `find/normalize/hash/dedup` CLI. `find` takes a PT description +
+  optional `--hint-author/--hint-period/--hint-region` and prints text or, with `--json`, a
+  `candidates[]` array (fields like `file_url, thumbnail_url, title, author, license, width,
+  height, date, similarity_score`). **This JSON is a contract** — `decks-historia` and the
+  `reverse-search` skill parse it; keep additions backward-compatible.
+- `app/reverse/` — the discovery engine behind `find`:
+  - `triangulate.py` — **the live `find` engine** (Commons MediaSearch + multilingual + author
+    subcategory walk + `_score_candidate`). Rota 1's replacement is not built yet, so this is
+    what actually runs.
+  - `commons_search.py` / `commons_categories.py` — Wikimedia Commons API access.
+  - `periodo.py` — period mapper ("século XVI"/"1815" → year range + EN term); built for Rota 1,
+    not yet wired into the `find` query path.
+  - `hasher.py` (pHash/dHash), `dedup.py` (vs a manifest — also used by
+    `acervo-didatico-historia`), `commons_normalize.py`, `models.py`.
+- `cli/coletar.py` + `app/coleta.py` + `app/licenca.py` — the batch collector: runs a plan,
+  searches **multiple sources**, classifies license, and writes the collected set for the
+  `banco-imagens` ingest.
+- `app/sources/` — one module per source, each exposing an async `search()`; consumed by the
+  **collector** (`cli.coletar`). `base.py` holds the shared `USER_AGENT` / `MissingKeyError`
+  (the reverse engine also imports `USER_AGENT` from here).
+  - **No key needed:** `wikimedia` (Commons), `met` (The Met).
+  - **Needs a key:** `smithsonian` (`SMITHSONIAN_API_KEY`), `europeana` (`EUROPEANA_API_KEY`;
+    queried with `reusability=open` → PD/CC0/CC BY/CC BY-SA only) — raise `MissingKeyError`
+    when absent.
+  - **Disabled:** `artic` (Art Institute of Chicago — image server behind Cloudflare
+    bot-protection). `acervos_adapter.py` adapts `scripts/acervos.py` to the source interface.
+- `scripts/acervos.py` — stdlib-only multi-archive connectors (BnF / LoC / Walters / DPLA /
+  Rijks / Harvard…).
 
 ## Environment / secrets
 
-Local: copy `.env.example` to `.env`. Production secrets are set on Fly
-(`fly secrets set`): `SECRET_KEY`, `APP_PASSWORD`, `EUROPEANA_API_KEY` (all Deployed). Set
-`SMITHSONIAN_API_KEY` similarly to enable that source. For password-reset e-mails set the
-`SMTP_*` vars (and `APP_BASE_URL` so links point at the public host); without SMTP the reset
-link is only logged/shown, not e-mailed.
+Copy `.env.example` to `.env`. Optional keys enable extra collector sources:
+`SMITHSONIAN_API_KEY` (free at api.data.gov) and `EUROPEANA_API_KEY` (free at
+pro.europeana.eu). Without them those sources are skipped; `wikimedia`/`met` need no key.
+(`SECRET_KEY`, `APP_PASSWORD`, `SMTP_*` from the old web app are no longer used.)
 
 ## Data
 
-`data/` is gitignored (it's the runtime volume). The recovered copy — `library.db` plus the
-saved `images/` and `thumbs/` — is kept locally as a backup but not committed.
+`data/` is gitignored (local runtime/scratch). External archive dumps live under `external/`
+(also gitignored — e.g. a ~43 MB Walters CSV mirror that carries its own `.git`).
