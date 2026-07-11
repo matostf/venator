@@ -9,97 +9,165 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 # ==============================================================================
 # HTML e CSS Embutido (Design Dark Mode inspirado em uma galeria de arte)
 # ==============================================================================
-HTML_CONTENT = """
+HTML_CONTENT = r"""
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <title>Venator Aesthetica | Curadoria Visual</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --glass-bg: rgba(15, 15, 20, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
         body {
             margin: 0;
             padding: 0;
-            background-color: #0d0d0f;
+            background-color: #050505;
             color: #eaeaea;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Outfit', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #bg-blur {
+            position: absolute;
+            top: -5%; left: -5%; width: 110%; height: 110%;
+            background-size: cover;
+            background-position: center;
+            filter: blur(50px) brightness(0.25);
+            z-index: 0;
+            transition: background-image 0.6s ease;
+        }
+        #image-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1;
+            padding-bottom: 160px; /* Espaço para a UI flutuante */
+            box-sizing: border-box;
+        }
+        img {
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+            border-radius: 6px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        #ui-layer {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            user-select: none;
+            gap: 20px;
+            width: 90%;
+            max-width: 700px;
         }
-        #image-container {
-            flex-grow: 1;
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px 40px;
             width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 40px;
             box-sizing: border-box;
-            position: relative;
-        }
-        img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            border-radius: 4px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
-            transition: opacity 0.4s ease;
-        }
-        #metadata {
             text-align: center;
-            padding: 0 20px 20px 20px;
-            max-width: 900px;
-            z-index: 10;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
         }
-        h1 { margin: 0 0 5px 0; font-size: 26px; font-weight: 400; color: #f2f2f2; }
-        p { margin: 0; color: #b3b3b3; font-size: 16px; font-weight: 300; }
+        h1 { 
+            margin: 0 0 6px 0; 
+            font-size: 22px; 
+            font-weight: 600; 
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        p { 
+            margin: 0; 
+            color: #aaaaaa; 
+            font-size: 15px; 
+            font-weight: 300; 
+        }
         .controls {
             display: flex;
-            gap: 30px;
-            padding: 30px 40px;
-            background: linear-gradient(to top, rgba(13,13,15,1) 40%, rgba(13,13,15,0));
-            width: 100%;
+            gap: 20px;
             justify-content: center;
-            z-index: 10;
+            width: 100%;
         }
         button {
             border: none;
             border-radius: 50px;
-            padding: 16px 45px;
-            font-size: 16px;
+            padding: 15px 35px;
+            font-size: 15px;
             font-weight: 600;
+            font-family: 'Outfit', sans-serif;
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-            text-transform: uppercase;
-            letter-spacing: 1px;
             display: flex;
             align-items: center;
             gap: 10px;
+            width: 180px;
+            justify-content: center;
         }
-        button:hover { transform: translateY(-3px); filter: brightness(1.15); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        button:hover { transform: translateY(-4px); }
         button:active { transform: translateY(1px); }
-        .btn-discard { background-color: #2c2c30; color: #ff453a; border: 1px solid #ff453a33; }
-        .btn-preserve { background-color: #32d74b11; color: #32d74b; border: 1px solid #32d74b44; }
-        .loading { opacity: 0.1; }
+        .btn-discard { 
+            background: rgba(255, 69, 58, 0.1); 
+            color: #ff453a; 
+            border: 1px solid rgba(255, 69, 58, 0.25); 
+        }
+        .btn-discard:hover { background: rgba(255, 69, 58, 0.2); box-shadow: 0 8px 25px rgba(255, 69, 58, 0.25); }
         
-        .hint { font-size: 12px; color: #555; position: absolute; bottom: 10px; right: 20px; }
+        .btn-preserve { 
+            background: rgba(50, 215, 75, 0.1); 
+            color: #32d74b; 
+            border: 1px solid rgba(50, 215, 75, 0.25); 
+        }
+        .btn-preserve:hover { background: rgba(50, 215, 75, 0.2); box-shadow: 0 8px 25px rgba(50, 215, 75, 0.25); }
+        
+        .btn-superlike { 
+            background: rgba(255, 204, 0, 0.1); 
+            color: #ffcc00; 
+            border: 1px solid rgba(255, 204, 0, 0.25); 
+        }
+        .btn-superlike:hover { background: rgba(255, 204, 0, 0.2); box-shadow: 0 8px 25px rgba(255, 204, 0, 0.25); }
+        
+        .loading { opacity: 0; transform: scale(0.97); }
+        
+        .hint { font-size: 13px; color: #666; margin-top: 5px; font-weight: 300;}
     </style>
 </head>
 <body>
+    <div id="bg-blur"></div>
     <div id="image-container">
         <img id="painting" src="" style="display:none;" />
     </div>
-    <div id="metadata">
-        <h1 id="title">Conectando ao oráculo...</h1>
-        <p id="artist">Aguarde, as musas estão buscando obras de arte...</p>
+    <div id="ui-layer">
+        <div class="glass-panel">
+            <h1 id="title">Conectando ao oráculo...</h1>
+            <p id="artist">Aguarde, as musas estão buscando obras de arte...</p>
+        </div>
+        <div class="controls">
+            <button class="btn-discard" onclick="vote('discard')">❌ Descartar</button>
+            <button class="btn-superlike" onclick="vote('superlike')">⭐ Superlike</button>
+            <button class="btn-preserve" onclick="vote('preserve')">✅ Preservar</button>
+        </div>
+        <div class="hint">Use as Setas ⬅️ (Descartar), ➡️ (Preservar) e ⬆️ (Superlike)</div>
     </div>
-    <div class="controls">
-        <button class="btn-discard" onclick="vote('discard')">❌ Descartar</button>
-        <button class="btn-preserve" onclick="vote('preserve')">✅ Preservar</button>
-    </div>
-    <div class="hint">Use as Setas ⬅️ e ➡️ do teclado</div>
 
     <script>
         let currentImage = null;
@@ -113,23 +181,26 @@ HTML_CONTENT = """
                 
                 if (data.error) {
                     document.getElementById('title').innerText = "Fim da Galeria";
-                    document.getElementById('artist').innerText = "Não há mais obras por agora. Retorne mais tarde.";
+                    document.getElementById('artist').innerText = "Não há mais obras por agora.";
                     return;
                 }
                 
                 currentImage = data;
                 
                 const img = document.getElementById('painting');
-                let cleanTitle = data.title.replace(/\\.[a-zA-Z0-9]+$/, '').replace(/_/g, ' ');
-                if (cleanTitle.length > 80) cleanTitle = cleanTitle.substring(0, 80) + '...';
+                const bgBlur = document.getElementById('bg-blur');
+                
+                let cleanTitle = data.title.replace(/\.[a-zA-Z0-9]+$/, '').replace(/_/g, ' ');
                 
                 img.onload = () => { 
                     img.classList.remove('loading'); 
                     img.style.display = 'block'; 
+                    bgBlur.style.backgroundImage = `url('${data.display_url}')`;
                 };
-                img.src = data.url;
+                img.src = data.display_url;
                 
                 document.getElementById('title').innerText = cleanTitle;
+                document.getElementById('title').title = cleanTitle; 
                 document.getElementById('artist').innerText = data.artist || "Autor Desconhecido";
             } catch (e) {
                 console.error(e);
@@ -160,6 +231,7 @@ HTML_CONTENT = """
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowLeft') vote('discard');
             if (e.key === 'ArrowRight') vote('preserve');
+            if (e.key === 'ArrowUp') vote('superlike');
         });
 
         loadNext();
@@ -173,6 +245,7 @@ HTML_CONTENT = """
 # ==============================================================================
 class AestheticaHandler(BaseHTTPRequestHandler):
     images_queue = []
+    current_offset = 0
     
     def log_message(self, format, *args):
         pass 
@@ -211,10 +284,15 @@ class AestheticaHandler(BaseHTTPRequestHandler):
             image = data.get('image')
             
             if action == 'preserve':
+                image['priority'] = 'normal'
                 self.save_to_thesaurus(image)
-                print(f" ✅ [PRESERVADA no Thesaurus] -> {image.get('title')}")
+                print(f" ✅ [PRESERVADA] -> {image.get('title')}")
+            elif action == 'superlike':
+                image['priority'] = 'superlike'
+                self.save_to_thesaurus(image)
+                print(f" ⭐ [SUPERLIKE]  -> {image.get('title')}")
             else:
-                print(f" ❌ [DESCARTADA]              -> {image.get('title')}")
+                print(f" ❌ [DESCARTADA] -> {image.get('title')}")
                 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -223,7 +301,8 @@ class AestheticaHandler(BaseHTTPRequestHandler):
             
     def fetch_more_from_wikimedia(self):
         seed = "Classical history painting"
-        url = f"https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch={urllib.parse.quote(seed)}&gsrnamespace=6&gsrlimit=20&prop=imageinfo&iiprop=url|extmetadata&format=json"
+        offset = self.__class__.current_offset
+        url = f"https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch={urllib.parse.quote(seed)}&gsrnamespace=6&gsrlimit=20&gsroffset={offset}&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1200&format=json"
         
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'VenatorAesthetica/1.0'})
@@ -237,6 +316,11 @@ class AestheticaHandler(BaseHTTPRequestHandler):
                     
                     title = page_info.get('title', '').replace('File:', '')
                     
+                    # Filtra apenas imagens (ignora livros em PDF, TIF ou DjVu que quebram a tag <img>)
+                    lower_title = title.lower()
+                    if lower_title.endswith('.pdf') or lower_title.endswith('.djvu') or lower_title.endswith('.tif') or lower_title.endswith('.tiff'):
+                        continue
+                    
                     artist_html = ext.get('Artist', {}).get('value', 'Autor Desconhecido')
                     import re
                     artist_clean = re.sub(r'<[^>]+>', '', artist_html).strip()
@@ -246,10 +330,14 @@ class AestheticaHandler(BaseHTTPRequestHandler):
                         "id": page_id,
                         "title": title,
                         "artist": artist_clean,
-                        "url": imageinfo.get('url', ''),
+                        "original_url": imageinfo.get('url', ''),
+                        "display_url": imageinfo.get('thumburl', imageinfo.get('url', '')),
                         "source": "wikimedia_commons",
                         "license": ext.get('LicenseShortName', {}).get('value', 'Desconhecida')
                     })
+                
+                # Avança a página para a próxima busca
+                self.__class__.current_offset += 20
         except Exception as e:
             print(f"\\n[!] Erro ao invocar as musas (Wikimedia): {e}")
 
