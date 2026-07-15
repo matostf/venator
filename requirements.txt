@@ -4,3 +4,5 @@ python-dotenv
 # Reverse image search (P1): perceptual hashing for dedup / by-image lookup.
 Pillow>=10
 imagehash>=4.3
+# Modelos tipados de app/reverse (models.py). Vinha via FastAPI; explicitado ao aposentar o app web (Rota 1).
+pydantic>=2

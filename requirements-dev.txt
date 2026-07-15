@@ -1,0 +1,4 @@
+# Dependências de desenvolvimento/CI (não vão para runtime).
+# Instala o runtime + as ferramentas de teste: pip install -r requirements-dev.txt
+-r requirements.txt
+pytest
