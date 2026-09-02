@@ -1,0 +1,16 @@
+[project]
+name = "venator"
+version = "0.1.0"
+description = "Venator - Garimpo de imagens"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx",
+    "python-dotenv",
+    "Pillow>=10.0",
+    "imagehash>=4.3",
+    "pydantic>=2.0"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
