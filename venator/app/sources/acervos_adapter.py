@@ -19,7 +19,9 @@ import httpx
 from app.sources.base import ImageResult
 
 # scripts/ não é um pacote — injeta no path e importa o módulo
-_ROOT = Path(__file__).resolve().parents[2]
+# venator/app/sources/acervos_adapter.py → parents[3] é a raiz do repo (o pacote
+# ganhou um nível no rename app/ → venator/app/ de 02/09/2026).
+_ROOT = Path(__file__).resolve().parents[3]
 if str(_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(_ROOT / "scripts"))
 import acervos  # noqa: E402
