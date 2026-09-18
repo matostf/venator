@@ -23,7 +23,7 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Syntax check (compile all sources)
-        run: python -m compileall -q app tests
+        run: python -m compileall -q venator tests
 
       - name: Tests (pytest)
         run: python -m pytest -q
