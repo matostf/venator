@@ -112,7 +112,7 @@ def loc_search(query, maxn=10):
     return out
 
 
-_WALTERS_DUMP_DIR = "/home/thiago/Projetos/garimpo-imagens/external/walters-api"
+_WALTERS_DUMP_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "external", "walters-api")
 _WALTERS_CACHE = None
 _WALTERS_CREATORS = None
 
@@ -176,7 +176,7 @@ def walters_search(query, maxn=10):
         raise RuntimeError(
             f"Walters CSV não encontrado em {art_csv}. "
             "Rodar: git clone --depth 1 https://github.com/WaltersArtMuseum/walters-api.git "
-            "em ~/Projetos/garimpo-imagens/external/"
+            "em external/ (ou: git submodule update --init)"
         )
     rows = _walters_load()
     q = query.lower()

@@ -1,0 +1,3 @@
+[submodule "external/walters-api"]
+	path = external/walters-api
+	url = https://github.com/WaltersArtMuseum/walters-api.git

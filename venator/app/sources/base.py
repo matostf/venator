@@ -38,9 +38,11 @@ class ImageResult:
 
 
 # A shared, descriptive User-Agent. Several APIs (notably Wikimedia) require one.
+# Wikimedia's User-Agent policy requires a descriptive agent with a real contact:
+# https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy
 USER_AGENT = (
-    "HistoryImageFinder/1.0 (educational classroom tool; "
-    "https://example.org; contact: teacher@example.org)"
+    "venator/0.1 (open-licence image discovery for history teaching; "
+    "https://github.com/matostf/venator; contact: matostf@gmail.com)"
 )
 
 
