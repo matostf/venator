@@ -134,7 +134,7 @@ python-dotenv.
   download or store images. Storage, deduplication at scale and the gallery
   live in the sister project `thesaurus`; the curated public-domain
   collection built with these tools is
-  [`armarium`](https://github.com/matostf/armarium).
+  [`eikones`](https://github.com/matostf/eikones).
 - **Commons first.** Wikimedia Commons carries machine-readable licence and
   artist fields for every file, which makes provenance capture reliable. The
   other sources are fallbacks when Commons has nothing usable.
