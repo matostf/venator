@@ -25,7 +25,7 @@ returns URLs/metadata and does **not** download images or keep a library — the
 > collector remain. The `find` engine rebuild (better PT-phrase handling, a real period
 > filter, new ranking) is **paused** on branch `rota1-descoberta-commons` — see
 > `docs/superpowers/specs/2026-06-24-rota1-descoberta-commons-design.md`. Default branch is
-> **`master`**. (`README.md` still describes the old web app — out of date.)
+> **`master`**. (`README.md` was rewritten in English on 2026-09-18 for the portfolio; the Portuguese one is `README.pt-BR.md`.)
 
 ## Commands
 
@@ -75,5 +75,6 @@ pro.europeana.eu). Without them those sources are skipped; `wikimedia`/`met` nee
 
 ## Data
 
-`data/` is gitignored (local runtime/scratch). External archive dumps live under `external/`
-(also gitignored — e.g. a ~43 MB Walters CSV mirror that carries its own `.git`).
+`data/` is gitignored (local runtime/scratch). External archive dumps live under `external/`: `external/walters-api` is a **git submodule**
+(`.gitmodules` added 2026-09-18) pointing at the Walters CC0 data dump; run
+`git submodule update --init` after cloning.

@@ -40,7 +40,7 @@ with a ready-to-paste credit line.
 | Smithsonian Open Access (EDAN) | `venator/app/sources/smithsonian.py` | free, api.data.gov | CC0 records only |
 | Europeana | `venator/app/sources/europeana.py` | free | queried with `reusability=open` |
 | The Met Collection API | `venator/app/sources/met.py` | no | open-access (CC0) objects |
-| Art Institute of Chicago + IIIF | `venator/app/sources/artic.py` | no | public-domain flag respected |
+| Art Institute of Chicago + IIIF | `venator/app/sources/artic.py` | no | adapter written but **disabled**: the image server sits behind bot protection |
 | Gallica / BnF (SRU) | `scripts/acervos.py` | no | |
 | Library of Congress | `scripts/acervos.py` | no | |
 | Rijksmuseum (linked data) | `scripts/acervos.py` | no | |
